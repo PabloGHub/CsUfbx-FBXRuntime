@@ -17,6 +17,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using static Ufbx.Runtime.FBXRuntime.contextFBXR;
 using static Ufbx.UfbxNative;
+using static UnityEditor.Experimental.AssetDatabaseExperimental.AssetDatabaseCounters;
 //using static Unity.Collections.AllocatorManager;
 
 namespace Ufbx.Runtime
@@ -75,7 +76,7 @@ namespace Ufbx.Runtime
 
 
 
-    
+
 
 
 
@@ -94,7 +95,7 @@ namespace Ufbx.Runtime
     // ************************************************ //
     public unsafe static class FBXRuntime
     {
-        
+
         // ************************************************ //
         //                  CONST or "CONST"                //
         // ************************************************ //
@@ -134,6 +135,11 @@ namespace Ufbx.Runtime
         // ************************************************ //
         internal unsafe class contextFBXR : IDisposable
         {
+            private bool _active = false;
+            public bool IsActive => _active;
+            public void Init() => _active = true;
+
+
             private Dictionary<uint, SkinnedMeshRenderer> _skinnedMeshs;
             public Dictionary<uint, SkinnedMeshRenderer> Meshes
             {
@@ -173,6 +179,7 @@ namespace Ufbx.Runtime
 
             public void Dispose()
             {
+                _active = false;
                 _skinnedMeshs.Clear();
                 _bones.Clear();
                 //_scene = (ufbx_scene*)0x0;
@@ -196,16 +203,8 @@ namespace Ufbx.Runtime
             ufbx_node* rootNode = pScene->root_node;
             GameObject root;
 
-
-            using (_context_internal.Value)
-            {
-                //_context_internal.Value.Scene = pScene;
-                root = buildNode_internal(rootNode, null);
-            }
-
-
+            root = BuildNode(rootNode);
             root.name = Path.GetFileNameWithoutExtension(pScene->metadata.filename.ToString());
-
 
 
             return root;
@@ -221,6 +220,23 @@ namespace Ufbx.Runtime
 
 
 
+        // ************************************************ //
+        //                                                  //
+        // ************************************************ //
+
+        internal static void postProcess(ufbx_scene* pScene)
+        {
+            if (!_context_internal.Value.IsActive)
+                return;
+
+            fillSkinnedMeshRendererBones(pScene);
+
+
+
+        }
+
+
+
 
 
 
@@ -230,13 +246,23 @@ namespace Ufbx.Runtime
         // ************************************************ //
         //                       NODES                      //
         // ************************************************ //
-        //public static unsafe GameObject BuildNode(ufbx_node* pNode, ufbx_scene* pContext, Transform pParent = null)
-        //{
-        //    using (_context_internal.Value)
-        //    {
-        //        return buildNode_internal(pNode, pContext, pParent);
-        //    }
-        //}
+        public static unsafe GameObject BuildNode(ufbx_node* pNode, Transform pParent = null)
+        {
+            GameObject r;
+            _context_internal = new();
+            _context_internal.Value = new();
+            using (_context_internal.Value)
+            {
+                _context_internal.Value.Init();
+
+                r = buildNode_internal(pNode, pParent);
+
+                postProcess(pNode->element.scene);
+
+            }
+
+            return r;
+        }
 
 
         internal static unsafe GameObject buildNode_internal(ufbx_node* pNode, Transform pParent)
@@ -245,14 +271,14 @@ namespace Ufbx.Runtime
 
             GameObject go = CreateNode(pNode, pParent);
 
-            procesNode_internal(pNode, go);
+            processNode_internal(pNode, go);
 
             buildTreeNode_internal(pNode, go.transform);
 
             return go;
         }
 
-        internal static unsafe void procesNode_internal(ufbx_node* pNode, GameObject pGameNode)
+        internal static unsafe void processNode_internal(ufbx_node* pNode, GameObject pGameNode)
         {
             if (pNode->bone != null)
             {
@@ -445,7 +471,42 @@ namespace Ufbx.Runtime
 
 
 
+        private static void fillSkinnedMeshRendererBones(ufbx_scene* pScene)
+        {
+            contextFBXR context = _context_internal.Value;
 
+            for (nuint m = 0; m < pScene->meshes.count; m++)
+            {
+                ufbx_mesh* mesh = pScene->meshes.data[m];
+                if (!context.Meshes.TryGetValue(mesh->element_id, out var smr))
+                    continue;
+
+                List<Transform> allBones = new();
+                for (nuint d = 0; d < mesh->skin_deformers.count; d++)
+                {
+                    ufbx_skin_deformer* deformer = mesh->skin_deformers.data[d];
+
+                    Debug.Log($"deformer->element_id: {deformer->element_id}");
+
+                    for (nuint c = 0; c < deformer->clusters.count; c++)
+                    {
+                        ufbx_skin_cluster* cluster = deformer->clusters.data[c];
+
+                        if (context.Bones.TryGetValue(cluster->bone_node->bone->element_id, out var go))
+                            allBones.Add(go.transform);
+
+                        Debug.Log($"cluster->element_id: {cluster->bone_node->bone->element_id} | " +
+                                          $"find: {(go != null ? "Yes" : "No")}");
+                    }
+                }
+
+                smr.bones = allBones.ToArray();
+                smr.rootBone = allBones[0]; // temporal
+            }
+
+
+
+        }
 
 
 
@@ -732,21 +793,21 @@ namespace Ufbx.Runtime
 
         //}
 
-        public struct RuntimeArmature
-        {
+        //public struct RuntimeArmature
+        //{
 
 
-            public ufbx_node*[] Skeleton;
-            public ufbx_node* Root;
-        }
+        //    public ufbx_node*[] Skeleton;
+        //    public ufbx_node* Root;
+        //}
 
 
 
-        public struct DataConnection
-        {
-            public ufbx_connection** Conections;
-            public nuint Count;
-        }
+        //public struct DataConnection
+        //{
+        //    public ufbx_connection** Conections;
+        //    public nuint Count;
+        //}
 
 
         //public static DataConnection FindAllConnection_tests(nuint pId, Allocator pAllo = Allocator.Temp)
@@ -878,7 +939,7 @@ namespace Ufbx.Runtime
         /// <summary>
         /// Its Temporal.
         /// </summary>
-        public static void FieldSkinnedMeshRendererBones_tmp(ref SkinnedMeshRenderer pSmr)
+        public static void FillSkinnedMeshRendererBones_tmp(ref SkinnedMeshRenderer pSmr)
         {
             if (pSmr.rootBone == null)
             {
@@ -915,7 +976,7 @@ namespace Ufbx.Runtime
 
             neo.localPosition = pNode->local_transform.translation.ToUnity();
             neo.localRotation = pNode->local_transform.rotation.ToUnity();
-            neo.localScale    = pNode->local_transform.scale.ToUnity();
+            neo.localScale = pNode->local_transform.scale.ToUnity();
 
             // TODO: Si es Root mover en local.
             //if (pNode->is_root == 1)
