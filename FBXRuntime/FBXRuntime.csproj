@@ -12,6 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="Unity.Collections">
+      <HintPath>..\Unity_6000.1.1f1\Unity.Collections.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine">
       <HintPath>..\Unity_6000.1.1f1\UnityEngine.dll</HintPath>
     </Reference>

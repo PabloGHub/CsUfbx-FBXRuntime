@@ -14,7 +14,6 @@ using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
-using UnityEngine.UIElements;
 using static Ufbx.Runtime.FBXRuntime.contextFBXR;
 using static Ufbx.UfbxNative;
 //using static Unity.Collections.AllocatorManager;
@@ -237,6 +236,18 @@ namespace Ufbx.Runtime
             fillAllSkinnedMeshRendererBones(pScene);
 
 
+            // Test
+            for (nuint m = 0; m < pScene->meshes.count; m++)
+            {
+                ufbx_mesh* mesh = pScene->meshes.data[m];
+                if (!_context_internal.Value.Meshes.TryGetValue(mesh->element_id, out var smr))
+                    continue;
+
+                var (weight, bonesPerVertex) = GetBoneWeight(mesh);
+
+                smr.sharedMesh.SetBoneWeights(bonesPerVertex.ToArray(Allocator.Temp), weight.ToArray(Allocator.Temp));
+
+            }
 
         }
 
@@ -445,6 +456,9 @@ namespace Ufbx.Runtime
             mesh.RecalculateTangents();
 
 
+            //mesh.SetBoneWeights
+            //    mesh.boneWeights
+
             return mesh;
         }
 
@@ -479,7 +493,7 @@ namespace Ufbx.Runtime
             {
                 ufbx_skin_deformer* deformer = pMesh->skin_deformers.data[d];
 
-                //Debug.Log($"deformer->element_id: {deformer->element_id}");
+                Console.WriteLine($"deformer->element_id: {deformer->element_id}");
 
                 for (nuint c = 0; c < deformer->clusters.count; c++)
                 {
@@ -488,8 +502,8 @@ namespace Ufbx.Runtime
                     if (_context_internal.Value.Bones.TryGetValue(cluster->bone_node->bone->element_id, out var go))
                         allBones.Add(go.transform);
 
-                    /*Debug.Log($"cluster->element_id: {cluster->bone_node->bone->element_id} | " +
-                                      $"find: {(go != null ? "Yes" : "No")}");*/
+                    Console.WriteLine($"cluster->element_id: {cluster->bone_node->bone->element_id} | " +
+                                      $"find: {(go != null ? "Yes" : "No")}");
                 }
             }
 
@@ -1088,6 +1102,78 @@ namespace Ufbx.Runtime
             };
         }
 
+        // TODO: Comprobar que llega a 1.
+        public static unsafe (NativeList<BoneWeight1> weights, NativeList<byte> bonesPerVertex) GetBoneWeight(ufbx_mesh* pMesh)
+        {
+            NativeList<BoneWeight1> weights = new NativeList<BoneWeight1>(Allocator.Temp);
+            NativeList<byte> bonesPerVertex = new NativeList<byte>((int)pMesh->num_vertices, Allocator.Temp);
+
+            nuint betweenClusters = 0;
+
+            for (nuint d = 0; d < pMesh->skin_deformers.count; d++)
+            {
+                ufbx_skin_deformer* deformer = pMesh->skin_deformers.data[d];
+
+                Debug.Log($"deformes: {pMesh->skin_deformers.count} | deformer: {deformer->vertices.count} | num_vertices: {pMesh->num_vertices}");
+
+                for (nuint v = 0; v < deformer->vertices.count; v++)
+                {
+                    ufbx_skin_vertex* vertex = &deformer->vertices.data[v];
+
+                    bonesPerVertex.Add((byte)vertex->num_weights);
+
+                    for (uint w = 0; w < vertex->num_weights; w++)
+                    {
+                        ufbx_skin_weight* weight = &deformer->weights.data[w + vertex->weight_begin];
+                        weights.Add(new BoneWeight1() { weight = (float)weight->weight, boneIndex = (int)weight->cluster_index + (int)betweenClusters });
+                    }
+                }
+
+                betweenClusters += deformer->clusters.count;
+
+                //for (nuint c = 0; c < deformer->clusters.count; c++)
+                //{
+                //    ufbx_skin_cluster* cluster = deformer->clusters.data[c];
+
+                //    float total = 0;
+
+                //    for (nuint w = 0; c < cluster->weights.count; w++)
+                //    {
+                //        double* weight = &cluster->weights.data[w];
+
+                //        total += (float)*weight;
+
+
+                //    }
+                //}
+            }
+
+            return (weights, bonesPerVertex);
+        }
+
+        // TODO: Delegate para las ligerezca.
+        public static unsafe void RoamSkinCluster(ufbx_mesh* pMesh, Action<nint> pEachDeformer = null, Action<nint, nint> pEachCluster = null)
+        {
+            for (nuint d = 0; d < pMesh->skin_deformers.count; d++)
+            {
+                ufbx_skin_deformer* deformer = pMesh->skin_deformers.data[d];
+                pEachDeformer?.Invoke((nint)deformer);
+
+                for (nuint c = 0; c < deformer->clusters.count; c++)
+                {
+                    ufbx_skin_cluster* cluster = deformer->clusters.data[c];
+                    pEachCluster?.Invoke((nint)deformer, (nint)cluster);
+                }
+            }
+        }
+        public static unsafe void RoamSkinDeformer(ufbx_mesh* pMesh, Action<nint> pEachDeformer = null)
+        {
+            for (nuint d = 0; d < pMesh->skin_deformers.count; d++)
+            {
+                ufbx_skin_deformer* deformer = pMesh->skin_deformers.data[d];
+                pEachDeformer?.Invoke((nint)deformer);
+            }
+        }
 
 
         public static unsafe Vector3[] GetVertex(ufbx_mesh* pMesh)
@@ -1794,6 +1880,24 @@ namespace Ufbx.Runtime
         public static Vector4 ToUnity(this ufbx_vec4 v)
         {
             return new Vector4((float)v.x, (float)v.y, (float)v.z, (float)v.w);
+        }
+
+
+
+
+        //public static BoneWeight1 ToBoneWeight1(this double r)
+        //{
+
+        //}
+
+        // TODO: 
+        public static BoneWeight ToBoneWeight(this ufbx_real_list r)
+        {
+            throw new NotImplementedException("WIMP");
+            //return new BoneWeight
+            //{
+            //    weight0
+            //};
         }
     }
 
