@@ -234,7 +234,7 @@ namespace Ufbx.Runtime
             if (!_context_internal.Value.IsActive)
                 return;
 
-            fillSkinnedMeshRendererBones(pScene);
+            fillAllSkinnedMeshRendererBones(pScene);
 
 
 
@@ -471,42 +471,42 @@ namespace Ufbx.Runtime
 
 
 
-
-        private static void fillSkinnedMeshRendererBones(ufbx_scene* pScene)
+        private static void fillSkinnedMeshRendererBones(ufbx_mesh* pMesh, SkinnedMeshRenderer pSMR)
         {
-            contextFBXR context = _context_internal.Value;
+            List<Transform> allBones = new();
 
+            for (nuint d = 0; d < pMesh->skin_deformers.count; d++)
+            {
+                ufbx_skin_deformer* deformer = pMesh->skin_deformers.data[d];
+
+                //Debug.Log($"deformer->element_id: {deformer->element_id}");
+
+                for (nuint c = 0; c < deformer->clusters.count; c++)
+                {
+                    ufbx_skin_cluster* cluster = deformer->clusters.data[c];
+
+                    if (_context_internal.Value.Bones.TryGetValue(cluster->bone_node->bone->element_id, out var go))
+                        allBones.Add(go.transform);
+
+                    /*Debug.Log($"cluster->element_id: {cluster->bone_node->bone->element_id} | " +
+                                      $"find: {(go != null ? "Yes" : "No")}");*/
+                }
+            }
+
+            pSMR.bones = allBones.ToArray();
+            pSMR.rootBone = allBones[0]; // temporal: maybe its disordered.
+        }
+
+        private static void fillAllSkinnedMeshRendererBones(ufbx_scene* pScene)
+        {
             for (nuint m = 0; m < pScene->meshes.count; m++)
             {
                 ufbx_mesh* mesh = pScene->meshes.data[m];
-                if (!context.Meshes.TryGetValue(mesh->element_id, out var smr))
+                if (!_context_internal.Value.Meshes.TryGetValue(mesh->element_id, out var smr))
                     continue;
 
-                List<Transform> allBones = new();
-                for (nuint d = 0; d < mesh->skin_deformers.count; d++)
-                {
-                    ufbx_skin_deformer* deformer = mesh->skin_deformers.data[d];
-
-                    Debug.Log($"deformer->element_id: {deformer->element_id}");
-
-                    for (nuint c = 0; c < deformer->clusters.count; c++)
-                    {
-                        ufbx_skin_cluster* cluster = deformer->clusters.data[c];
-
-                        if (context.Bones.TryGetValue(cluster->bone_node->bone->element_id, out var go))
-                            allBones.Add(go.transform);
-
-                        Debug.Log($"cluster->element_id: {cluster->bone_node->bone->element_id} | " +
-                                          $"find: {(go != null ? "Yes" : "No")}");
-                    }
-                }
-
-                smr.bones = allBones.ToArray();
-                smr.rootBone = allBones[0]; // temporal
+                fillSkinnedMeshRendererBones(mesh, smr);
             }
-
-
-
         }
 
 
