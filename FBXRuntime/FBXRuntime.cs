@@ -17,7 +17,6 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using static Ufbx.Runtime.FBXRuntime.contextFBXR;
 using static Ufbx.UfbxNative;
-using static UnityEditor.Experimental.AssetDatabaseExperimental.AssetDatabaseCounters;
 //using static Unity.Collections.AllocatorManager;
 
 namespace Ufbx.Runtime
@@ -34,6 +33,8 @@ namespace Ufbx.Runtime
     starts: lowercase = private
     starts: __ = public, ONLY for modders, Not recommended
     */
+
+
 
     public static class FBXRuntimePipeline
     {
@@ -137,7 +138,11 @@ namespace Ufbx.Runtime
         {
             private bool _active = false;
             public bool IsActive => _active;
-            public void Init() => _active = true;
+            public contextFBXR Init()
+            {
+                _active = true;
+                return this;
+            }
 
 
             private Dictionary<uint, SkinnedMeshRenderer> _skinnedMeshs;
@@ -185,7 +190,7 @@ namespace Ufbx.Runtime
                 //_scene = (ufbx_scene*)0x0;
             }
         }
-        internal static AsyncLocal<contextFBXR> _context_internal;
+        internal static AsyncLocal<contextFBXR> _context_internal = new() { Value = new() };
 
 
 
@@ -249,16 +254,12 @@ namespace Ufbx.Runtime
         public static unsafe GameObject BuildNode(ufbx_node* pNode, Transform pParent = null)
         {
             GameObject r;
-            _context_internal = new();
-            _context_internal.Value = new();
-            using (_context_internal.Value)
-            {
-                _context_internal.Value.Init();
 
+            using (_context_internal.Value.Init())
+            {
                 r = buildNode_internal(pNode, pParent);
 
                 postProcess(pNode->element.scene);
-
             }
 
             return r;
@@ -342,11 +343,11 @@ namespace Ufbx.Runtime
 
 
 
-        public static unsafe void FindBones(ufbx_node* pNode, List<IntPtr> pArmature)
+        public static unsafe void FindBones(ufbx_node* pNode, List<nint> pArmature)
         {
             if (pNode->bone != null)
             {
-                pArmature.Add((IntPtr)pNode);
+                pArmature.Add((nint)pNode);
             }
 
             for (nuint i = 0; i < pNode->children.count; i++)
