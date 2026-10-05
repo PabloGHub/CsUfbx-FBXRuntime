@@ -377,7 +377,8 @@ namespace Ufbx.Runtime
 
         internal static unsafe void processMesh_internal(ufbx_node* pMeshNode, GameObject pTarjet)
         {
-            if (isBuildSkinnedMesh(pMeshNode))
+            // Tests
+            if (true) // isBuildSkinnedMesh(pMeshNode)
             {
                 BuildSkinnedMeshRenderer(pMeshNode->mesh, pTarjet);
             }
@@ -434,15 +435,21 @@ namespace Ufbx.Runtime
                         ? pMesh->name.ToString()
                         : "Ufbx_Mesh",
 
-                vertices = data.Vertices,
-                triangles = data.Triangles,
+                //vertices = data.Vertices,
+                vertices = GetVertex(pMesh),
+                triangles = GetTrianges(pMesh),
                 //tangents = GetTangent(pMesh),
                 //colors = GetVextesColor(pMesh)
             };
 
-            if (data.Normals != null)
-                mesh.normals = data.Normals;
-            else
+            //if (data.Normals != null)
+            //    mesh.normals = data.Normals;
+            //else
+            //    mesh.RecalculateNormals();
+
+            //if (pMesh->vertex_normal.exists == 1)
+            //    mesh.normals = GetNormals(pMesh);
+            //else
                 mesh.RecalculateNormals();
 
             if (data.UVs != null)
@@ -1027,6 +1034,7 @@ namespace Ufbx.Runtime
 
         // TODO: Dividirlo por funciones mas pequeñas.
         // TODO: Coger: tangentes y colores de vertices, (Si se pueden otras cosas, mejor).
+        // Problemas actuales: 
         public static unsafe DataFaces GetDataFaces(ufbx_mesh* pMesh)
         {
             int totalTriangles = (int)pMesh->num_triangles;
@@ -1149,6 +1157,20 @@ namespace Ufbx.Runtime
             }
 
             return (weights, bonesPerVertex);
+        }
+
+        // Creo que hay una funcion interna que ya hace la conversion.
+        public static unsafe int[] GetTrianges(ufbx_mesh* pMesh)
+        {
+            nuint l = pMesh->vertex_indices.count; // lenght
+            int[] t = new int[l]; // triangles 
+
+            for (nuint i = 0; i < l; i++)
+            {
+                t[i] = (int)pMesh->vertex_indices.data[i];
+            }
+
+            return t;
         }
 
         // TODO: Delegate para las ligerezca.
