@@ -89,15 +89,34 @@ namespace Ufbx
         // ************************************************ //
         //               Helpers from Ufbx.h                //
         // ************************************************ //
+
+
+
+        // ipotesis: ufbx_assert sirve para comprobar que el archivo existe y esta correcto
+        // #define ufbx_assert(m_cond) do { if (!(m_cond)) ufbxt_assert_fail_imp("ufbx_assert", __FILE__, __LINE__, #m_cond); } while (0)
+
         // Utility functions for reading geometry data for a single index.
-        //public static unsafe double ufbx_get_vertex_real(ufbx_vertex_real* v, [NativeTypeName("size_t")] UIntPtr index)
-        //{
-        //    ufbx_assert((int)index < (int)v->indices.count); // ufbx_assert esta en "check_fbx.c"
-        //    return v->values.data[(int)v->indices.data[(int)index]];
-        //}
-        //public static unsafe ufbx_vec2 ufbx_get_vertex_vec2(const ufbx_vertex_vec2* v, size_t index) { ufbx_assert(index < v->indices.count); return v->values.data[(int32_t)v->indices.data[index]]; }
-        //public static unsafe ufbx_vec3 ufbx_get_vertex_vec3(const ufbx_vertex_vec3* v, size_t index) { ufbx_assert(index < v->indices.count); return v->values.data[(int32_t)v->indices.data[index]]; }
-        //public static unsafe ufbx_vec4 ufbx_get_vertex_vec4(const ufbx_vertex_vec4* v, size_t index) { ufbx_assert(index < v->indices.count); return v->values.data[(int32_t)v->indices.data[index]]; }
+        public static unsafe double ufbx_get_vertex_real(ufbx_vertex_real* v, UIntPtr index)
+        {
+            // ufbx_assert((int)index < (int)v->indices.count); // ufbx_assert esta en "check_fbx.c"
+            return v->values.data[v->indices.data[(int)index]];
+        }
+        public static unsafe ufbx_vec2 ufbx_get_vertex_vec2(ufbx_vertex_vec2* v, UIntPtr index)
+        {
+            //ufbx_assert(index<v->indices.count);
+            return v->values.data[v->indices.data[(int)index]];
+        }
+        public static unsafe ufbx_vec3 ufbx_get_vertex_vec3(ufbx_vertex_vec3* v, UIntPtr index)
+        {
+            //ufbx_assert(index < v->indices.count);
+            return v->values.data[v->indices.data[(int)index]];
+        }
+        public static unsafe ufbx_vec4 ufbx_get_vertex_vec4(ufbx_vertex_vec4* v, UIntPtr index)
+        { 
+            //ufbx_assert(index < v->indices.count);
+            return v->values.data[v->indices.data[(int)index]];
+        }
+
 
 
     }

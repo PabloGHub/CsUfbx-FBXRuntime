@@ -374,7 +374,6 @@ namespace Ufbx.Runtime
         //                       Mesh                       //
         // ************************************************ //
         // TODO: Armature, Mesh, BlendShapes
-
         internal static unsafe void processMesh_internal(ufbx_node* pMeshNode, GameObject pTarjet)
         {
             // Tests
@@ -1030,6 +1029,12 @@ namespace Ufbx.Runtime
             public int[] Triangles;
         }
 
+        public unsafe struct DataVertex
+        {
+            public Vector3 Position;
+            public Vector3 Normal;
+            public Vector2 UV;
+        }
 
 
         // TODO: Dividirlo por funciones mas pequeñas.
