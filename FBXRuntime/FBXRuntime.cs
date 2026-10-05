@@ -434,22 +434,24 @@ namespace Ufbx.Runtime
                         ? pMesh->name.ToString()
                         : "Ufbx_Mesh",
 
-                //vertices = data.Vertices,
-                vertices = GetVertex(pMesh),
-                triangles = GetTrianges(pMesh),
+                vertices = data.Vertices,
+                triangles = data.Triangles,
+
+                //vertices = GetVertex(pMesh),
+                //triangles = GetTrianges(pMesh),
                 //tangents = GetTangent(pMesh),
                 //colors = GetVextesColor(pMesh)
             };
 
-            //if (data.Normals != null)
-            //    mesh.normals = data.Normals;
-            //else
-            //    mesh.RecalculateNormals();
+            if (data.Normals != null)
+                mesh.normals = data.Normals;
+            else
+                mesh.RecalculateNormals();
 
             //if (pMesh->vertex_normal.exists == 1)
             //    mesh.normals = GetNormals(pMesh);
             //else
-                mesh.RecalculateNormals();
+            //    mesh.RecalculateNormals();
 
             if (data.UVs != null)
                 mesh.uv = data.UVs;
@@ -1040,7 +1042,7 @@ namespace Ufbx.Runtime
         // TODO: Dividirlo por funciones mas pequeñas.
         // TODO: Coger: tangentes y colores de vertices, (Si se pueden otras cosas, mejor).
         // Problemas actuales: 
-        public static unsafe DataFaces GetDataFaces(ufbx_mesh* pMesh)
+        public static unsafe DataFaces GetDataFaces_old(ufbx_mesh* pMesh)
         {
             int totalTriangles = (int)pMesh->num_triangles;
             int totalVertices = totalTriangles * 3;
@@ -1115,6 +1117,77 @@ namespace Ufbx.Runtime
             };
         }
 
+
+        public static unsafe DataFaces GetDataFaces(ufbx_mesh* pMesh)
+        {
+            // Usamos estrictamente la cantidad de vértices originales (ej. 684)
+            int vertexCount = (int)pMesh->num_vertices;
+
+            Vector3[] vertices = new Vector3[vertexCount];
+            Vector3[] normals = new Vector3[vertexCount];
+            Vector2[] uvs = new Vector2[vertexCount];
+
+            bool hasNormals = pMesh->vertex_normal.exists == 1;
+            bool hasUVs = pMesh->vertex_uv.exists == 1;
+
+            // 1. Llenamos el arreglo posicional base
+            for (int i = 0; i < vertexCount; i++)
+            {
+                vertices[i] = pMesh->vertices.data[i].ToUnity();
+            }
+
+            // 2. Extraemos los triángulos usando los índices compartidos
+            int totalTriangles = (int)pMesh->num_triangles;
+            int[] triangles = new int[totalTriangles * 3];
+            int triIndex = 0;
+
+            for (ulong f = 0; f < (ulong)pMesh->faces.count; f++)
+            {
+                ufbx_face* face = &pMesh->faces.data[f];
+
+                for (uint v = 2; v < face->num_indices; v++)
+                {
+                    uint i0 = face->index_begin;
+                    uint i1 = face->index_begin + v - 1;
+                    uint i2 = face->index_begin + v;
+
+                    // Extraemos los índices originales que referencian de 0 a 683
+                    uint vIdx0 = pMesh->vertex_indices.data[i0];
+                    uint vIdx1 = pMesh->vertex_indices.data[i1];
+                    uint vIdx2 = pMesh->vertex_indices.data[i2];
+
+                    // Construimos la cara apuntando a los vértices originales sin crear copias
+                    triangles[triIndex++] = (int)vIdx0;
+                    triangles[triIndex++] = (int)vIdx1;
+                    triangles[triIndex++] = (int)vIdx2;
+
+                    // Proyectamos los datos de UVs y Normales al índice original del vértice
+                    if (hasNormals)
+                    {
+                        normals[vIdx0] = pMesh->vertex_normal.values.data[pMesh->vertex_normal.indices.data[i0]].ToUnity();
+                        normals[vIdx1] = pMesh->vertex_normal.values.data[pMesh->vertex_normal.indices.data[i1]].ToUnity();
+                        normals[vIdx2] = pMesh->vertex_normal.values.data[pMesh->vertex_normal.indices.data[i2]].ToUnity();
+                    }
+
+                    if (hasUVs)
+                    {
+                        uvs[vIdx0] = pMesh->vertex_uv.values.data[pMesh->vertex_uv.indices.data[i0]].ToUnity();
+                        uvs[vIdx1] = pMesh->vertex_uv.values.data[pMesh->vertex_uv.indices.data[i1]].ToUnity();
+                        uvs[vIdx2] = pMesh->vertex_uv.values.data[pMesh->vertex_uv.indices.data[i2]].ToUnity();
+                    }
+                }
+            }
+
+            return new DataFaces
+            {
+                Vertices = vertices,
+                Normals = hasNormals ? normals : null,
+                UVs = hasUVs ? uvs : null,
+                Triangles = triangles
+            };
+        }
+
+
         // TODO: Comprobar que llega a 1.
         public static unsafe (NativeList<BoneWeight1> weights, NativeList<byte> bonesPerVertex) GetBoneWeight(ufbx_mesh* pMesh)
         {
@@ -1178,7 +1251,7 @@ namespace Ufbx.Runtime
             return t;
         }
 
-        // TODO: Delegate para las ligerezca.
+        // TODO: Delegate para más ligerezca.
         public static unsafe void RoamSkinCluster(ufbx_mesh* pMesh, Action<nint> pEachDeformer = null, Action<nint, nint> pEachCluster = null)
         {
             for (nuint d = 0; d < pMesh->skin_deformers.count; d++)
