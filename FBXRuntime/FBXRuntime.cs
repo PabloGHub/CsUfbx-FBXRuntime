@@ -1041,7 +1041,7 @@ namespace Ufbx.Runtime
 
         // TODO: Dividirlo por funciones mas pequeñas.
         // TODO: Coger: tangentes y colores de vertices, (Si se pueden otras cosas, mejor).
-        // Problemas actuales: 
+        // Problemas actuales: si, todo, all, cualquiera, tambien, tu!
         public static unsafe DataFaces GetDataFaces_old(ufbx_mesh* pMesh)
         {
             int totalTriangles = (int)pMesh->num_triangles;
@@ -1202,39 +1202,41 @@ namespace Ufbx.Runtime
 
                 Debug.Log($"deformes: {pMesh->skin_deformers.count} | deformer: {deformer->vertices.count} | num_vertices: {pMesh->num_vertices}");
 
-                for (nuint v = 0; v < deformer->vertices.count; v++)
-                {
-                    ufbx_skin_vertex* vertex = &deformer->vertices.data[v];
-
-                    bonesPerVertex.Add((byte)vertex->num_weights);
-
-                    for (uint w = 0; w < vertex->num_weights; w++)
-                    {
-                        ufbx_skin_weight* weight = &deformer->weights.data[w + vertex->weight_begin];
-                        weights.Add(new BoneWeight1() { weight = (float)weight->weight, boneIndex = (int)weight->cluster_index + (int)betweenClusters });
-                    }
-                }
+                addVertexArmature(deformer, ref betweenClusters, ref bonesPerVertex, ref weights);
 
                 betweenClusters += deformer->clusters.count;
-
-                //for (nuint c = 0; c < deformer->clusters.count; c++)
-                //{
-                //    ufbx_skin_cluster* cluster = deformer->clusters.data[c];
-
-                //    float total = 0;
-
-                //    for (nuint w = 0; c < cluster->weights.count; w++)
-                //    {
-                //        double* weight = &cluster->weights.data[w];
-
-                //        total += (float)*weight;
-
-
-                //    }
-                //}
             }
 
             return (weights, bonesPerVertex);
+        }
+
+        // TODO: Un mejor nombre.
+        private static unsafe void addVertexArmature(ufbx_skin_deformer* pDeformer, ref nuint pBetweenClusters, ref NativeList<byte> pBonesPerVertex, ref NativeList<BoneWeight1> pWeights)
+        {
+            for (nuint v = 0; v < pDeformer->vertices.count; v++)
+            {
+                ufbx_skin_vertex* vertex = &pDeformer->vertices.data[v];
+
+                if (vertex->num_weights == 0)
+                {
+                    pBonesPerVertex.Add(1);
+                    pWeights.Add(new BoneWeight1()
+                    {
+                        weight = 1.0f,
+                        boneIndex = 0
+                    });
+                    Debug.LogError($"[FBXRuntime]: The fbx ({pDeformer->Anonymous.element.scene->metadata.filename.ToString()}) failed in Vertex ({v}:aprox) has zero weights in deformer ({pDeformer->name}).");
+                    continue;
+                }
+
+                pBonesPerVertex.Add((byte)vertex->num_weights);
+
+                for (uint w = 0; w < vertex->num_weights; w++)
+                {
+                    ufbx_skin_weight* weight = &pDeformer->weights.data[w + vertex->weight_begin];
+                    pWeights.Add(new BoneWeight1() { weight = (float)weight->weight, boneIndex = (int)weight->cluster_index + (int)pBetweenClusters });
+                }
+            }
         }
 
         // Creo que hay una funcion interna que ya hace la conversion.
