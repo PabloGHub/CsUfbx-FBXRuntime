@@ -213,11 +213,22 @@ namespace Ufbx.Runtime
 
             return root;
         }
+        public static unsafe GameObject Instantiate(ufbx_node* pRoot)
+        {
+            return BuildNode(pRoot);
+        }
 
 
 
 
-
+        public static unsafe bool Export(GameObject pRoot, string pPath)
+        {
+            throw new NotImplementedException("WIP");
+        }
+        public static unsafe bool Export(Scene* pScene, string pPath)
+        {
+            throw new NotImplementedException("WIP");
+        }
 
 
 
@@ -1985,6 +1996,10 @@ namespace Ufbx.Runtime
         }
 
 
+        //public static Matrix4x4 ToUnity(this ufbx_matrix m)
+        //{
+
+        //}
 
 
         //public static BoneWeight1 ToBoneWeight1(this double r)
@@ -1993,14 +2008,14 @@ namespace Ufbx.Runtime
         //}
 
         // TODO: 
-        public static BoneWeight ToBoneWeight(this ufbx_real_list r)
-        {
-            throw new NotImplementedException("WIMP");
-            //return new BoneWeight
-            //{
-            //    weight0
-            //};
-        }
+        //public static BoneWeight ToBoneWeight(this ufbx_real_list r)
+        //{
+        //    throw new NotImplementedException("WIMP");
+        //    //return new BoneWeight
+        //    //{
+        //    //    weight0
+        //    //};
+        //}
     }
 
 
