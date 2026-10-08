@@ -700,28 +700,60 @@ namespace Ufbx.Runtime
             applyRoughness(pUfbxMaterial, pMaterial);
             applyEmission(pUfbxMaterial, pMaterial);
 
-            // applyMetallic(pMaterial, material);
+            // --- Carga y asignación de texturas por canal ---
+            applyAlbedoTexture(pUfbxMaterial, pMaterial);
+            applyNormalTexture(pUfbxMaterial, pMaterial);
+            applyEmissionTexture(pUfbxMaterial, pMaterial);
+        }
 
+        private static unsafe void applyAlbedoTexture(ufbx_material* pUfbxMaterial, Material pMaterial)
+        {
+            ufbx_texture* albedoTex = pUfbxMaterial->pbr.base_color.texture != null
+                                    ? pUfbxMaterial->pbr.base_color.texture
+                                    : pUfbxMaterial->fbx.diffuse_color.texture;
+                
 
-            // TODO: Carga de Texturas
-            // Si (pMaterial->pbr.base_color.texture != null)
-            // Deberás cargar la textura y asignarla usando: sharedMaterial.SetTexture("_MainTex", textura2D);
-
-            if (pUfbxMaterial->textures.count > (nuint)0)
+            if (albedoTex != null)
             {
-                for (nuint i = 0; i < pUfbxMaterial->textures.count; i++)
+                Texture2D tex = CreateTexture(albedoTex);
+
+                if (pMaterial.HasProperty("_BaseMap")) // URP Lit
+                    pMaterial.SetTexture("_BaseMap", tex);
+                else if (pMaterial.HasProperty("_MainTex")) // Standard Standard / Built-in
+                    pMaterial.SetTexture("_MainTex", tex);
+            }
+        }
+
+        private static unsafe void applyNormalTexture(ufbx_material* pUfbxMaterial, Material pMaterial)
+        {
+            if (pUfbxMaterial->pbr.normal_map.texture != null)
+            {
+                Texture2D tex = CreateTexture(pUfbxMaterial->pbr.normal_map.texture);
+
+                if (pMaterial.HasProperty("_BumpMap"))
                 {
-                    Texture2D t = CreateTexture(pUfbxMaterial->textures.data[i].texture);
-                    if (pMaterial.has)
-                        pMaterial.SetTexture("_MainTex", t);
+                    pMaterial.SetTexture("_BumpMap", tex);
+                    pMaterial.EnableKeyword("_NORMALMAP"); // Activa el cálculo de normales en el shader
                 }
             }
+        }
 
-            // TODO
-            // applyAlbedoTexture(...)
-            // applyNormalTexture(...)
-            // applyMetallicTexture(...)
-            // applyRoughnessTexture(...)
+        private static unsafe void applyEmissionTexture(ufbx_material* pUfbxMaterial, Material pMaterial)
+        {
+            ufbx_texture* emissionTex = pUfbxMaterial->pbr.emission_color.texture != null
+                                      ? pUfbxMaterial->pbr.emission_color.texture
+                                      : pUfbxMaterial->fbx.emission_color.texture;
+
+            if (emissionTex != null)
+            {
+                Texture2D tex = CreateTexture(emissionTex);
+
+                if (pMaterial.HasProperty("_EmissionMap"))
+                {
+                    pMaterial.SetTexture("_EmissionMap", tex);
+                    pMaterial.EnableKeyword("_EMISSION"); // Activa el keyword de emisión
+                }
+            }
         }
 
 
