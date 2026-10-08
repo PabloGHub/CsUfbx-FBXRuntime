@@ -16,6 +16,7 @@ using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
+using static System.Net.Mime.MediaTypeNames;
 using static Ufbx.Runtime.FBXRuntime.contextFBXR;
 using static Ufbx.UfbxNative;
 //using static Unity.Collections.AllocatorManager;
@@ -612,37 +613,67 @@ namespace Ufbx.Runtime
 
         public static Texture2D CreateTexture(ufbx_texture* pTexture)
         {
-            throw new NotImplementedException();
-            //Texture2D t = ;
+            // throw new NotImplementedException();
+            byte[] imageData;
+
+            if (pTexture->type == ufbx_texture_type.UFBX_TEXTURE_FILE)
+                imageData = readTextureExtern(pTexture);
+            else
+                imageData = readTextureEmbedded(pTexture);
 
 
+            Texture2D t = new Texture2D(2, 2);
+
+            if (!t.LoadImage(imageData, false))
+            {
+                UnityEngine.Object.Destroy(t);
+                return null;
+            }
+
+            t.name = pTexture->name.data != null
+                ? pTexture->name.ToString()
+                : "Ufbx_Texture";
+
+            return t;
         }
 
-        //private static unsafe byte[] readTextureEmbedded(ufbx_texture* pTexture)
-        //{
-        //    byte[] data;
+        private static unsafe byte[] readTextureEmbedded(ufbx_texture* pTexture)
+        {
+            byte[] data;
 
-        //    if (pTexture->content.data != null && pTexture->content.size > (nuint)0)
-        //    {
-        //        int size = checked((int)pTexture->content.size);
+            if (pTexture->content.data != null && pTexture->content.size > (nuint)0)
+            {
+                int size = checked((int)pTexture->content.size);
 
-        //        data = new byte[size];
+                data = new byte[size];
 
-        //        Marshal.Copy(
-        //            (IntPtr)pTexture->content.data,
-        //            data,
-        //            0,
-        //            size
-        //        );
-        //    }
+                Marshal.Copy(
+                    (IntPtr)pTexture->content.data,
+                    data,
+                    0,
+                    size
+                );
+            }
+            else
+            {
+                data = null;
+            }
 
-        //    return data;
-        //}
+            return data;
+        }
 
-        //private static unsafe byte[] readTextureExtern(ufbx_texture* pTexture)
-        //{
+        private static unsafe byte[] readTextureExtern(ufbx_texture* pTexture)
+        {
+            string path = pTexture->absolute_filename.ToString();
 
-        //}
+            if (!File.Exists(path))
+            {
+                Debug.LogError($"[FBXRuntime]: Not exist \"{path}\" file");
+                return null;
+            }
+
+            return File.ReadAllBytes(path);
+        }
 
         public static Material CreateMaterial(ufbx_material* pMaterial, string pShader = null)
         {
@@ -676,10 +707,13 @@ namespace Ufbx.Runtime
             // Si (pMaterial->pbr.base_color.texture != null)
             // Deberás cargar la textura y asignarla usando: sharedMaterial.SetTexture("_MainTex", textura2D);
 
-            if (pUfbxMaterial->pbr.base_color.texture != null)
+            if (pUfbxMaterial->textures.count > (nuint)0)
             {
-                Debug.LogError("Es una textura", pMaterial);
-                //pMaterial.SetTexture("_MainTex", );
+                for (nuint i = 0; i < pUfbxMaterial->textures.count; i++)
+                {
+                    Texture2D t = CreateTexture(pUfbxMaterial->textures.data[i].texture);
+                    pMaterial.SetTexture("_MainTex", t);
+                }
             }
 
             // TODO

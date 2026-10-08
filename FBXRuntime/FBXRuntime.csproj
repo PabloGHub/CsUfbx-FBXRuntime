@@ -21,6 +21,9 @@
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>..\Unity_6000.1.1f1\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>..\Unity_6000.1.1f1\UnityEngine.ImageConversionModule.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
