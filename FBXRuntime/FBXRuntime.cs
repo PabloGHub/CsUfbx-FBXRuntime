@@ -2011,58 +2011,19 @@ namespace Ufbx.Runtime
 
         public static Matrix4x4 ToUnity(this ufbx_matrix m)
         {
-            return new Matrix4x4
+            Matrix4x4 mat = new()
             {
-                m00 = (float)m.m00,
-                m10 = (float)m.m10,
-                m20 = (float)m.m20,
-                //m30 = (float)m.m30,
+                m00 = (float)m.m00,  m10 = (float)m.m10,  m20 = (float)m.m20,
+                m01 = (float)m.m01,  m11 = (float)m.m11,  m21 = (float)m.m21,
+                m02 = (float)m.m02,  m12 = (float)m.m12,  m22 = (float)m.m22,
+                m03 = (float)m.m03,  m13 = (float)m.m13,  m23 = (float)m.m23,
 
-                m01 = (float)m.m01,
-                m02 = (float)m.m02,
-                m03 = (float)m.m03,
-
-                m11 = (float)m.m11,
-                m12 = (float)m.m12,
-                m13 = (float)m.m13,
-
-                m21 = (float)m.m21,
-                m22 = (float)m.m22,
-                m23 = (float)m.m23,
-
-                //m31 = (float)m.m31,
-                //m32 = (float)m.m32,
-                //m33 = (float)m.m33,
+                m30 = 0f,
+                m31 = 0f,
+                m32 = 0f,
+                m33 = 1f
             };
-        }
-
-
-        // Kill me, pls D:
-        public static System.Numerics.Matrix4x4 ToSystem(this ufbx_matrix m)
-        {
-            return new System.Numerics.Matrix4x4
-            {
-                //M00 = (float)m.m00,
-                //M10 = (float)m.m10,
-                //M20 = (float)m.m20,
-                //M30 = (float)m.m30,
-
-                //M01 = (float)m.m01,
-                //M02 = (float)m.m02,
-                //M03 = (float)m.m03,
-
-                M11 = (float)m.m11,
-                M12 = (float)m.m12,
-                M13 = (float)m.m13,
-
-                M21 = (float)m.m21,
-                M22 = (float)m.m22,
-                M23 = (float)m.m23,
-
-                //M31 = (float)m.m31,
-                //M32 = (float)m.m32,
-                //M33 = (float)m.m33,
-            };
+            return mat;
         }
 
         //public static BoneWeight1 ToBoneWeight1(this double r)
