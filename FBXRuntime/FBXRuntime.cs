@@ -712,7 +712,8 @@ namespace Ufbx.Runtime
                 for (nuint i = 0; i < pUfbxMaterial->textures.count; i++)
                 {
                     Texture2D t = CreateTexture(pUfbxMaterial->textures.data[i].texture);
-                    pMaterial.SetTexture("_MainTex", t);
+                    if (pMaterial.has)
+                        pMaterial.SetTexture("_MainTex", t);
                 }
             }
 
