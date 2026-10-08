@@ -42,6 +42,7 @@ namespace Ufbx.Runtime
         * Recordar que hacia ^
         * Entender GetDataFace
         * Descubrir porque es necesario los bindPoses para que los huesos y peso de los huesos funcione
+        * Descubrir que es cluster->geometry_to_bone
      */
 
 
@@ -408,8 +409,7 @@ namespace Ufbx.Runtime
         // TODO: Armature, Mesh, BlendShapes
         internal static unsafe void processMesh_internal(ufbx_node* pMeshNode, GameObject pTarjet)
         {
-            // Tests
-            if (true) // isBuildSkinnedMesh(pMeshNode)
+            if (isBuildSkinnedMesh(pMeshNode))
             {
                 BuildSkinnedMeshRenderer(pMeshNode->mesh, pTarjet);
             }
@@ -503,22 +503,23 @@ namespace Ufbx.Runtime
         }
 
 
-        private static unsafe bool isBuildSkinnedMesh(ufbx_node* pMeshNode, string pNameRoot = null)
+        private static unsafe bool isBuildSkinnedMesh(ufbx_node* pMeshNode)
         {
-            bool findBone = false;
-            pNameRoot ??= ROOT_ARMATURE;
+            if (pMeshNode->mesh == null)
+                throw new Exception($"[FBXRuntime]: The node \"{pMeshNode->name}\" is not a Mesh.");
 
-            for (ulong i = 0; i < (ulong)pMeshNode->parent->children.count; i++)
+            fixed (ufbx_mesh_list* meshes = &pMeshNode->element.scene->meshes)
             {
-                ufbx_node* bone = pMeshNode->parent->children.data[i];
-                if (bone->bone != null || bone->name.ToString() == pNameRoot)
+                for (nuint i = 0; i < meshes->count; i++)
                 {
-                    findBone = true;
-                    break;
+                    ufbx_mesh* m = meshes->data[i];
+
+                    if (m->element_id == pMeshNode->mesh->element_id)
+                        return m->skin_deformers.count > (nuint)1 && m->skin_deformers.data[0]->clusters.count > (nuint)1;
                 }
             }
 
-            return findBone;
+            return false;
         }
 
 
@@ -1262,7 +1263,7 @@ namespace Ufbx.Runtime
                         weight = 1.0f,
                         boneIndex = 0
                     });
-                    Debug.LogError($"[FBXRuntime]: The fbx ({pDeformer->Anonymous.element.scene->metadata.filename.ToString()}) failed in Vertex ({v}:aprox) has zero weights in deformer ({pDeformer->name}).");
+                    Debug.LogError($"[FBXRuntime]: The fbx \"{pDeformer->Anonymous.element.scene->metadata.filename.ToString()}\" failed in Vertex \"{v}:aprox\" has zero weights in deformer \"{pDeformer->name}\".");
                     continue;
                 }
 
