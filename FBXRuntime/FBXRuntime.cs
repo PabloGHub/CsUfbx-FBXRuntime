@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+//using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -33,6 +34,13 @@ namespace Ufbx.Runtime
     starts: __ = public, ONLY for modders, Not recommended
     */
 
+
+    /*
+     -- Minicosas a Aprender:
+        * Que es una Matrix.
+        * Recordar que hacia ^
+        * 
+     */
 
 
     public static class FBXRuntimePipeline
@@ -213,19 +221,18 @@ namespace Ufbx.Runtime
 
             return root;
         }
-        public static unsafe GameObject Instantiate(ufbx_node* pRoot)
-        {
-            return BuildNode(pRoot);
-        }
+
+        public static unsafe GameObject Instantiate(ufbx_node* pRoot) =>
+            BuildNode(pRoot);
 
 
 
 
-        public static unsafe bool Export(GameObject pRoot, string pPath)
+        public static unsafe bool Export(GameObject pRoot, string pPath, string pName = null)
         {
             throw new NotImplementedException("WIP");
         }
-        public static unsafe bool Export(Scene* pScene, string pPath)
+        public static unsafe bool Export(Scene* pScene, string pPath, string pName = null)
         {
             throw new NotImplementedException("WIP");
         }
@@ -507,27 +514,33 @@ namespace Ufbx.Runtime
         private static void fillSkinnedMeshRendererBones(ufbx_mesh* pMesh, SkinnedMeshRenderer pSMR)
         {
             List<Transform> allBones = new();
+            List<Matrix4x4> bindPoses = new();
 
             for (nuint d = 0; d < pMesh->skin_deformers.count; d++)
             {
                 ufbx_skin_deformer* deformer = pMesh->skin_deformers.data[d];
 
-                Console.WriteLine($"deformer->element_id: {deformer->element_id}");
+                //Debug.Log($"deformer->element_id: {deformer->element_id}");
 
                 for (nuint c = 0; c < deformer->clusters.count; c++)
                 {
                     ufbx_skin_cluster* cluster = deformer->clusters.data[c];
 
                     if (_context_internal.Value.Bones.TryGetValue(cluster->bone_node->bone->element_id, out var go))
+                    {
                         allBones.Add(go.transform);
+                        bindPoses.Add(cluster->geometry_to_bone.ToUnity());
+                    }
 
-                    Console.WriteLine($"cluster->element_id: {cluster->bone_node->bone->element_id} | " +
-                                      $"find: {(go != null ? "Yes" : "No")}");
+                    //Debug.Log($"cluster->element_id: {cluster->bone_node->bone->element_id} | find: {(go != null ? "Yes" : "No")}");
                 }
             }
 
             pSMR.bones = allBones.ToArray();
-            pSMR.rootBone = allBones[0]; // temporal: maybe its disordered.
+            pSMR.sharedMesh.bindposes = bindPoses.ToArray();
+
+            // temporal: maybe its disordered.
+            if (allBones.Count > 0) pSMR.rootBone = allBones[0]; 
         }
 
         private static void fillAllSkinnedMeshRendererBones(ufbx_scene* pScene)
@@ -1996,11 +2009,61 @@ namespace Ufbx.Runtime
         }
 
 
-        //public static Matrix4x4 ToUnity(this ufbx_matrix m)
-        //{
+        public static Matrix4x4 ToUnity(this ufbx_matrix m)
+        {
+            return new Matrix4x4
+            {
+                m00 = (float)m.m00,
+                m10 = (float)m.m10,
+                m20 = (float)m.m20,
+                //m30 = (float)m.m30,
 
-        //}
+                m01 = (float)m.m01,
+                m02 = (float)m.m02,
+                m03 = (float)m.m03,
 
+                m11 = (float)m.m11,
+                m12 = (float)m.m12,
+                m13 = (float)m.m13,
+
+                m21 = (float)m.m21,
+                m22 = (float)m.m22,
+                m23 = (float)m.m23,
+
+                //m31 = (float)m.m31,
+                //m32 = (float)m.m32,
+                //m33 = (float)m.m33,
+            };
+        }
+
+
+        // Kill me, pls D:
+        public static System.Numerics.Matrix4x4 ToSystem(this ufbx_matrix m)
+        {
+            return new System.Numerics.Matrix4x4
+            {
+                //M00 = (float)m.m00,
+                //M10 = (float)m.m10,
+                //M20 = (float)m.m20,
+                //M30 = (float)m.m30,
+
+                //M01 = (float)m.m01,
+                //M02 = (float)m.m02,
+                //M03 = (float)m.m03,
+
+                M11 = (float)m.m11,
+                M12 = (float)m.m12,
+                M13 = (float)m.m13,
+
+                M21 = (float)m.m21,
+                M22 = (float)m.m22,
+                M23 = (float)m.m23,
+
+                //M31 = (float)m.m31,
+                //M32 = (float)m.m32,
+                //M33 = (float)m.m33,
+            };
+        }
 
         //public static BoneWeight1 ToBoneWeight1(this double r)
         //{
