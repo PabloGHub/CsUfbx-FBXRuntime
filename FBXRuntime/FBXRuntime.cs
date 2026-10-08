@@ -37,9 +37,20 @@ namespace Ufbx.Runtime
 
     /*
      -- Minicosas a Aprender:
-        * Que es una Matrix.
+        * Que es una Matrix
+        * Descubirir porque m33 debe ser 1f de la matrix4x4
         * Recordar que hacia ^
         * 
+     */
+
+
+    /*
+     -- Features faltantres:
+        * Distinguir entre SkinnedMeshRenderer y MesFilter
+        * Crear Textura
+        * Crear Animaciones
+        * Crear Camara
+        * Crear Luces
      */
 
 
