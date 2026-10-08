@@ -6,6 +6,7 @@ using System.Linq;
 //using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Xml.Linq;
@@ -515,7 +516,7 @@ namespace Ufbx.Runtime
                     ufbx_mesh* m = meshes->data[i];
 
                     if (m->element_id == pMeshNode->mesh->element_id)
-                        return m->skin_deformers.count > (nuint)1 && m->skin_deformers.data[0]->clusters.count > (nuint)1;
+                        return m->skin_deformers.count > (nuint)0 && m->skin_deformers.data[0]->clusters.count > (nuint)0;
                 }
             }
 
@@ -609,10 +610,39 @@ namespace Ufbx.Runtime
             return s;
         }
 
-        public static Texture CreateTexture(ufbx_material* pMaterial)
+        public static Texture2D CreateTexture(ufbx_texture* pTexture)
         {
-            throw new NotImplementedException("TODO: Leer textura y crearla");
+            throw new NotImplementedException();
+            //Texture2D t = ;
+
+
         }
+
+        //private static unsafe byte[] readTextureEmbedded(ufbx_texture* pTexture)
+        //{
+        //    byte[] data;
+
+        //    if (pTexture->content.data != null && pTexture->content.size > (nuint)0)
+        //    {
+        //        int size = checked((int)pTexture->content.size);
+
+        //        data = new byte[size];
+
+        //        Marshal.Copy(
+        //            (IntPtr)pTexture->content.data,
+        //            data,
+        //            0,
+        //            size
+        //        );
+        //    }
+
+        //    return data;
+        //}
+
+        //private static unsafe byte[] readTextureExtern(ufbx_texture* pTexture)
+        //{
+
+        //}
 
         public static Material CreateMaterial(ufbx_material* pMaterial, string pShader = null)
         {
@@ -649,7 +679,7 @@ namespace Ufbx.Runtime
             if (pUfbxMaterial->pbr.base_color.texture != null)
             {
                 Debug.LogError("Es una textura", pMaterial);
-                //sharedMaterial.SetTexture("_MainTex", );
+                //pMaterial.SetTexture("_MainTex", );
             }
 
             // TODO
