@@ -40,7 +40,8 @@ namespace Ufbx.Runtime
         * Que es una Matrix
         * Descubirir porque m33 debe ser 1f de la matrix4x4
         * Recordar que hacia ^
-        * 
+        * Entender GetDataFace
+        * Descubrir porque es necesario los bindPoses para que los huesos y peso de los huesos funcione
      */
 
 
@@ -49,6 +50,8 @@ namespace Ufbx.Runtime
         * Distinguir entre SkinnedMeshRenderer y MesFilter
         * Crear Textura
         * Crear Animaciones
+        * BlendsShapes
+        * Completar Material
         * Crear Camara
         * Crear Luces
      */
@@ -499,8 +502,7 @@ namespace Ufbx.Runtime
             return mesh;
         }
 
-        // TODO: dar SkinnedMeshRenderer
-        // dar root y luego buscar si hay un SkinnedMeshRenderer y crear esqueleto a partir del root
+
         private static unsafe bool isBuildSkinnedMesh(ufbx_node* pMeshNode, string pNameRoot = null)
         {
             bool findBone = false;
@@ -1223,7 +1225,7 @@ namespace Ufbx.Runtime
         }
 
 
-        // TODO: Comprobar que llega a 1.
+        // TODO: Comprobar que llega a 1 de peso entre todos.
         public static unsafe (NativeList<BoneWeight1> weights, NativeList<byte> bonesPerVertex) GetBoneWeight(ufbx_mesh* pMesh)
         {
             NativeList<BoneWeight1> weights = new NativeList<BoneWeight1>(Allocator.Temp);
@@ -1235,7 +1237,7 @@ namespace Ufbx.Runtime
             {
                 ufbx_skin_deformer* deformer = pMesh->skin_deformers.data[d];
 
-                Debug.Log($"deformes: {pMesh->skin_deformers.count} | deformer: {deformer->vertices.count} | num_vertices: {pMesh->num_vertices}");
+                // Debug.Log($"deformes: {pMesh->skin_deformers.count} | deformer: {deformer->vertices.count} | num_vertices: {pMesh->num_vertices}");
 
                 addVertexArmature(deformer, ref betweenClusters, ref bonesPerVertex, ref weights);
 
