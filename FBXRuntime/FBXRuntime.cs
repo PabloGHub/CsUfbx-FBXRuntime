@@ -616,11 +616,13 @@ namespace Ufbx.Runtime
             // throw new NotImplementedException();
             byte[] imageData;
 
-            if (pTexture->type == ufbx_texture_type.UFBX_TEXTURE_FILE)
-                imageData = readTextureExtern(pTexture);
-            else
-                imageData = readTextureEmbedded(pTexture);
+            //if (pTexture->type == ufbx_texture_type.UFBX_TEXTURE_FILE)
+            //    imageData = readTextureExtern(pTexture);
+            //else
+            //    imageData = readTextureEmbedded(pTexture);
 
+            // Tests
+            imageData = readTextureEmbedded(pTexture);
 
             Texture2D t = new Texture2D(2, 2);
 
@@ -693,6 +695,9 @@ namespace Ufbx.Runtime
         }
 
 
+
+        // TODO: No debe crear la textura por cada apply: GPT (any IA) is SIDA!
+        // TODO: 
         public static unsafe void ApplyMaterialProperties(ufbx_material* pUfbxMaterial, Material pMaterial)
         {
             applyBaseColor(pUfbxMaterial, pMaterial);
