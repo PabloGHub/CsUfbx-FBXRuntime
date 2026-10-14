@@ -477,12 +477,12 @@ namespace Ufbx.Runtime
                 m[i] = CreateMaterial(pMesh->materials.data[i], pShader);
             }
 
-            pRenderer.material = m[0];
+            if (m.Length > 0)
+                pRenderer.material = m[0];
             pRenderer.materials = m;
         }
 
 
-        // TODO: Hay que extraer: Vertices, Normales, UV, Materiales
         public static unsafe Mesh CreateMesh(ufbx_mesh* pMesh)
         {
             DataFaces data = GetDataFaces(pMesh);
@@ -1207,14 +1207,14 @@ namespace Ufbx.Runtime
             public int[] Triangles;
 
             public Vector2[] UV0;
-            public Vector2[] UV1;
-            public Vector2[] UV2;
-            public Vector2[] UV3;
-            public Vector2[] UV4;
-            public Vector2[] UV5;
-            public Vector2[] UV6;
-            public Vector2[] UV7;
-            public Vector2[] UV8;
+            //public Vector2[] UV1;
+            //public Vector2[] UV2;
+            //public Vector2[] UV3;
+            //public Vector2[] UV4;
+            //public Vector2[] UV5;
+            //public Vector2[] UV6;
+            //public Vector2[] UV7;
+            //public Vector2[] UV8;
 
         }
 
