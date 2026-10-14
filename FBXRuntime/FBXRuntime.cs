@@ -50,11 +50,10 @@ namespace Ufbx.Runtime
 
     /*
      -- Features faltantres:
-        * Distinguir entre SkinnedMeshRenderer y MesFilter
-        * Crear Textura
+        * fix UVs
+        * Si un vertice no tiene pesos asigarle una interporlacion entre el anterior y el siguiente y si no al [0] con 1f.
         * Crear Animaciones
         * BlendsShapes
-        * Completar Material
         * Crear Camara
         * Crear Luces
      */
@@ -217,7 +216,16 @@ namespace Ufbx.Runtime
         internal static AsyncLocal<contextFBXR> _context_internal = new() { Value = new() };
 
 
-
+        public static readonly ufbx_load_opts DefaultOptions = new()
+        {
+            clean_skin_weights = 1,
+            target_axes = new ufbx_coordinate_axes
+            {
+                right = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_NEGATIVE_X,
+                up = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_Y,
+                front = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_Z
+            },
+        };
 
 
 
@@ -229,15 +237,10 @@ namespace Ufbx.Runtime
 
         public static unsafe ufbx_scene* LoadScene(string pPath, ufbx_error* pError)
         {
-            ufbx_load_opts opts = new ufbx_load_opts();
-            opts.target_axes = new ufbx_coordinate_axes
+            fixed (ufbx_load_opts* opts = &DefaultOptions)
             {
-                right = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_NEGATIVE_X,
-                up = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_Y,
-                front = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_Z
-            };
-
-            return CsUfbx.LoadScene(pPath, pError, &opts);
+                return CsUfbx.LoadScene(pPath, pError, opts);
+            }
         }
 
 
@@ -446,10 +449,7 @@ namespace Ufbx.Runtime
 
 
             meshFilter.sharedMesh = unityMesh;
-            var mat = CreateMaterial(pMesh->materials.data[0], pShader);
-
-            meshRenderer.material = mat;
-            //meshRenderer.sharedMaterial = mat;
+            asingMaterials(pMesh, meshRenderer, pShader);
         }
 
 
@@ -461,16 +461,25 @@ namespace Ufbx.Runtime
 
 
             skinned.sharedMesh = unityMesh;
-            var mat = CreateMaterial(pMesh->materials.data[0], pShader);
-
-            skinned.material = mat;
-            //skinned.sharedMaterial = mat;
+            asingMaterials(pMesh, skinned, pShader);
 
 
             _context_internal.Value.Meshes.Add(pMesh->element_id, skinned); // new dataMesh{ Skinned = skinned, Mesh = pMesh }
         }
 
 
+        private static unsafe void asingMaterials(ufbx_mesh* pMesh, Renderer pRenderer, string pShader = null)
+        {
+            Material[] m = new Material[(nuint)pMesh->materials.count];
+
+            for (nuint i = 0; i < pMesh->materials.count; i++)
+            {
+                m[i] = CreateMaterial(pMesh->materials.data[i], pShader);
+            }
+
+            pRenderer.material = m[0];
+            pRenderer.materials = m;
+        }
 
 
         // TODO: Hay que extraer: Vertices, Normales, UV, Materiales
@@ -503,8 +512,8 @@ namespace Ufbx.Runtime
             //else
             //    mesh.RecalculateNormals();
 
-            if (data.UVs != null)
-                mesh.uv = data.UVs;
+            if (data.UV0 != null)
+                mesh.uv = data.UV0;
 
             //Vector3[] post = GetVertexPosition(pMesh);
 
@@ -633,8 +642,10 @@ namespace Ufbx.Runtime
             byte[] imageData;
 
             // look at me, im python now.
-            //if (pTexture->type == ufbx_texture_type.UFBX_TEXTURE_FILE)
-            //    imageData = readTextureExtern(pTexture);
+            if (pTexture->type == ufbx_texture_type.UFBX_TEXTURE_FILE)
+                imageData = readTextureExtern(pTexture);
+            else // tests
+                imageData = readTextureEmbedded(pTexture);
 
             //else if (pTexture->type == ufbx_texture_type.UFBX_TEXTURE_LAYERED)
             //    imageData = readTextureEmbedded(pTexture); // tmp
@@ -648,9 +659,6 @@ namespace Ufbx.Runtime
             //else if (pTexture->type == ufbx_texture_type.UFBX_TEXTURE_TYPE_FORCE_32BIT)
             //    imageData = readTextureEmbedded(pTexture); // tmp
 
-
-            // Tests
-            imageData = readTextureEmbedded(pTexture);
 
             Texture2D t = new Texture2D(2, 2);
 
@@ -1196,8 +1204,18 @@ namespace Ufbx.Runtime
         {
             public Vector3[] Vertices;
             public Vector3[] Normals;
-            public Vector2[] UVs;
             public int[] Triangles;
+
+            public Vector2[] UV0;
+            public Vector2[] UV1;
+            public Vector2[] UV2;
+            public Vector2[] UV3;
+            public Vector2[] UV4;
+            public Vector2[] UV5;
+            public Vector2[] UV6;
+            public Vector2[] UV7;
+            public Vector2[] UV8;
+
         }
 
         public unsafe struct DataVertex
@@ -1281,7 +1299,7 @@ namespace Ufbx.Runtime
             {
                 Vertices = vertices,
                 Normals = hasNormals ? normals : null,
-                UVs = hasUVs ? uvs : null,
+                UV0 = hasUVs ? uvs : null,
                 Triangles = triangles
             };
         }
@@ -1289,7 +1307,6 @@ namespace Ufbx.Runtime
 
         public static unsafe DataFaces GetDataFaces(ufbx_mesh* pMesh)
         {
-            // Usamos estrictamente la cantidad de vértices originales (ej. 684)
             int vertexCount = (int)pMesh->num_vertices;
 
             Vector3[] vertices = new Vector3[vertexCount];
@@ -1351,7 +1368,7 @@ namespace Ufbx.Runtime
             {
                 Vertices = vertices,
                 Normals = hasNormals ? normals : null,
-                UVs = hasUVs ? uvs : null,
+                UV0 = hasUVs ? uvs : null,
                 Triangles = triangles
             };
         }
