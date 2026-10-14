@@ -54,6 +54,7 @@ namespace Ufbx.Runtime
         * Si un vertice no tiene pesos asigarle una interporlacion entre el anterior y el siguiente y si no al [0] con 1f.
         * Crear Animaciones
         * BlendsShapes
+        * Dar las targentes a la Mesh
         * Crear Camara
         * Crear Luces
      */
@@ -445,7 +446,9 @@ namespace Ufbx.Runtime
         {
             MeshFilter meshFilter = pTarjet.AddComponent<MeshFilter>();
             MeshRenderer meshRenderer = pTarjet.AddComponent<MeshRenderer>();
-            Mesh unityMesh = CreateMesh(pMesh);
+            Mesh unityMesh = (uint)pMesh->face_group_parts.count > 1
+                            ? CreateMeshByPart(pMesh)
+                            : CreateMesh(pMesh);
 
 
             meshFilter.sharedMesh = unityMesh;
@@ -457,7 +460,9 @@ namespace Ufbx.Runtime
         public static unsafe void BuildSkinnedMeshRenderer(ufbx_mesh* pMesh, GameObject pTarjet, string pShader = null)
         {
             SkinnedMeshRenderer skinned = pTarjet.AddComponent<SkinnedMeshRenderer>();
-            Mesh unityMesh = CreateMesh(pMesh);
+            Mesh unityMesh = (uint)pMesh->face_group_parts.count > 1
+                            ? CreateMeshByPart(pMesh)
+                            : CreateMesh(pMesh);
 
 
             skinned.sharedMesh = unityMesh;
@@ -525,6 +530,107 @@ namespace Ufbx.Runtime
 
             //mesh.SetBoneWeights
             //    mesh.boneWeights
+
+            return mesh;
+        }
+
+
+        public static unsafe Mesh CreateMeshByPart(ufbx_mesh* pMesh)
+        {
+            nuint c = pMesh->face_group_parts.count;
+
+            if (c < 1)  return CreateMesh(pMesh);
+
+            DataFaces[] faces = new DataFaces[c];
+            Mesh mesh;
+
+            for (nuint i = 0; i < c; i++)
+            {
+                ufbx_mesh_part* part = &pMesh->face_group_parts.data[i];
+                faces[i] = GetDataFaces(pMesh, part);
+            }
+
+            ref DataFaces face0 = ref faces[0];
+
+
+            ////// Face0 : Malla principal
+                mesh = new Mesh
+                {
+                    name = pMesh->name.data != null
+                        ? pMesh->name.ToString()
+                        : "Ufbx_Mesh",
+
+                    vertices = face0.Vertices,
+                };
+
+                if (face0.Normals != null)
+                    mesh.normals = face0.Normals;
+                else
+                    mesh.RecalculateNormals();
+
+
+                if (face0.UV0 != null)
+                    mesh.uv = face0.UV0;
+
+                mesh.RecalculateTangents();
+            //////
+
+            if (c < 2)
+            {
+                mesh.triangles = face0.Triangles;
+                return mesh;
+            }
+            mesh.subMeshCount = (int)c;
+
+
+            ////// FaceX : SubMallas
+                SubMeshDescriptor[] subMeshes = new SubMeshDescriptor[c];
+
+                for (int i = 0; i < (int)c; i++)
+                {
+                    int indexCount = faces[i].Triangles.Length;
+                    int indexStart = 0;
+
+                    // Calcular offset acumulativo de índices anteriores
+                    for (int j = 0; j < i; j++)
+                        indexStart += faces[j].Triangles.Length;
+
+                    subMeshes[i] = new SubMeshDescriptor
+                    {
+                        topology = MeshTopology.Triangles,
+                        indexStart = indexStart,
+                        indexCount = indexCount,
+                        baseVertex = 0,
+                        firstVertex = 0,
+                        vertexCount = face0.Vertices.Length,
+                        bounds = new Bounds(
+                            center: Vector3.zero, // Recalcular después o usar bounds de la malla completa
+                            size: Vector3.zero
+                        )
+                    };
+                }
+
+                // Concatenar todos los triángulos en un solo buffer
+                int totalIndices = 0;
+                foreach (var f in faces)
+                    totalIndices += f.Triangles.Length;
+
+                int[] allTriangles = new int[totalIndices];
+                int offset = 0;
+                foreach (var f in faces)
+                {
+                    Array.Copy(f.Triangles, 0, allTriangles, offset, f.Triangles.Length);
+                    offset += f.Triangles.Length;
+                }
+
+                // Asignar buffer completo y descriptores
+                mesh.SetIndexBufferParams(totalIndices, IndexFormat.UInt32);
+                mesh.SetIndexBufferData(allTriangles, 0, 0, totalIndices, MeshUpdateFlags.DontRecalculateBounds);
+                mesh.SetSubMeshes(subMeshes, MeshUpdateFlags.DontRecalculateBounds);
+
+                mesh.RecalculateBounds();
+            //////
+
 
             return mesh;
         }
