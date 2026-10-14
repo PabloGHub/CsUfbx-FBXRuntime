@@ -602,7 +602,7 @@ namespace Ufbx.Runtime
                         : Shader.Find(pNameStarter);
 
             if (s == null)
-                throw new NullReferenceException("Not find shader");
+                throw new Exception("[FBXRuntime]: Not find shader");
 
             if (pShader == null) return s;
             // TODO: Aplicar lo que se le pueda aplicar al shader
