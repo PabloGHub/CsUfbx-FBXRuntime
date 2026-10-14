@@ -227,6 +227,22 @@ namespace Ufbx.Runtime
         //                         IO                       //
         // ************************************************ //
 
+        public static unsafe ufbx_scene* LoadScene(string pPath, ufbx_error* pError)
+        {
+            ufbx_load_opts opts = new ufbx_load_opts();
+            opts.target_axes = new ufbx_coordinate_axes
+            {
+                right = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_NEGATIVE_X,
+                up = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_Y,
+                front = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_Z
+            };
+
+            return CsUfbx.LoadScene(pPath, pError, &opts);
+        }
+
+
+
+
         public static unsafe GameObject Instantiate(ufbx_scene* pScene)
         {
             ufbx_node* rootNode = pScene->root_node;
@@ -616,10 +632,22 @@ namespace Ufbx.Runtime
             // throw new NotImplementedException();
             byte[] imageData;
 
+            // look at me, im python now.
             //if (pTexture->type == ufbx_texture_type.UFBX_TEXTURE_FILE)
             //    imageData = readTextureExtern(pTexture);
-            //else
-            //    imageData = readTextureEmbedded(pTexture);
+
+            //else if (pTexture->type == ufbx_texture_type.UFBX_TEXTURE_LAYERED)
+            //    imageData = readTextureEmbedded(pTexture); // tmp
+
+            //else if (pTexture->type == ufbx_texture_type.UFBX_TEXTURE_PROCEDURAL)
+            //    imageData = readTextureEmbedded(pTexture); // tmp
+
+            //else if (pTexture->type == ufbx_texture_type.UFBX_TEXTURE_SHADER)
+            //    imageData = readTextureEmbedded(pTexture); // tmp
+
+            //else if (pTexture->type == ufbx_texture_type.UFBX_TEXTURE_TYPE_FORCE_32BIT)
+            //    imageData = readTextureEmbedded(pTexture); // tmp
+
 
             // Tests
             imageData = readTextureEmbedded(pTexture);
@@ -676,6 +704,7 @@ namespace Ufbx.Runtime
 
             return File.ReadAllBytes(path);
         }
+
 
         public static Material CreateMaterial(ufbx_material* pMaterial, string pShader = null)
         {
@@ -1578,55 +1607,54 @@ namespace Ufbx.Runtime
             sb.AppendLine("========== UFBX SCENE INFO ==========");
 
             // ---- Metadata ----
-            PrintMetadata(pScene, sb);
+            addStringMetadata(pScene, sb);
 
 
             // ---- Settings ----
-            PrintSettings(pScene, sb);
+            addStringSettings(pScene, sb);
 
 
             // ---- Element counts ----
-            PrintElementCounts(pScene, sb);
+            addStringElementCounts(pScene, sb);
 
 
             // ---- Nodes ----
-            PrintNodes(pScene, sb);
+            addStringNodes(pScene, sb);
 
 
             // ---- Meshes ----
-            PrintMeshes(pScene, sb);
+            addStringMeshes(pScene, sb);
 
 
             // ---- Materials ----
-            PrintMaterials(pScene, sb);
+            addStringMaterials(pScene, sb);
 
 
             // ---- Textures ----
-            PrintTextures(pScene, sb);
+            addStringTextures(pScene, sb);
+
+            // ---- Texture Files ----
+            addStringTextureFiles(pScene, sb);
 
 
             // ---- Lights ----
-            PrintLights(pScene, sb);
+            addStringLights(pScene, sb);
 
 
             // ---- Cameras ----
-            PrintCameras(pScene, sb);
+            addStringCameras(pScene, sb);
 
 
             // ---- Bones ----
-            PrintBones(pScene, sb);
+            addStringBones(pScene, sb);
 
 
             // ---- Animation ----
-            PrintAnimation(pScene, sb);
-
-
-            // ---- Texture Files ----
-            PrintTextureFiles(pScene, sb);
+            addStringAnimation(pScene, sb);
 
 
             // ---- Connections ----
-            PrintConnections(pScene, sb);
+            addStringConnections(pScene, sb);
 
             sb.AppendLine("========== END UFBX SCENE INFO ==========");
 
@@ -1635,7 +1663,7 @@ namespace Ufbx.Runtime
 
         #region Private Helpers
 
-        private static unsafe void PrintMetadata(ufbx_scene* pScene, StringBuilder sb)
+        private static unsafe void addStringMetadata(ufbx_scene* pScene, StringBuilder sb)
         {
             sb.AppendLine();
             sb.AppendLine("--- METADATA ---");
@@ -1696,7 +1724,7 @@ namespace Ufbx.Runtime
                            $"Format={metadata.thumbnail.format}");
         }
 
-        private static unsafe void PrintSettings(ufbx_scene* pScene, StringBuilder sb)
+        private static unsafe void addStringSettings(ufbx_scene* pScene, StringBuilder sb)
         {
             sb.AppendLine();
             sb.AppendLine("--- SETTINGS ---");
@@ -1714,7 +1742,7 @@ namespace Ufbx.Runtime
             sb.AppendLine($"  Axes: Right={settings.axes.right}, Up={settings.axes.up}, Front={settings.axes.front}");
         }
 
-        private static unsafe void PrintElementCounts(ufbx_scene* pScene, StringBuilder sb)
+        private static unsafe void addStringElementCounts(ufbx_scene* pScene, StringBuilder sb)
         {
             sb.AppendLine();
             sb.AppendLine("--- ELEMENT COUNTS ---");
@@ -1766,7 +1794,7 @@ namespace Ufbx.Runtime
             sb.AppendLine($"  Elements By Name: {(int)pScene->elements_by_name.count}");
         }
 
-        private static unsafe void PrintNodes(ufbx_scene* pScene, StringBuilder sb)
+        private static unsafe void addStringNodes(ufbx_scene* pScene, StringBuilder sb)
         {
             sb.AppendLine();
             sb.AppendLine("--- NODES ---");
@@ -1794,7 +1822,7 @@ namespace Ufbx.Runtime
             }
         }
 
-        private static unsafe void PrintMeshes(ufbx_scene* pScene, StringBuilder sb)
+        private static unsafe void addStringMeshes(ufbx_scene* pScene, StringBuilder sb)
         {
             ufbx_mesh_list meshes = pScene->meshes;
 
@@ -1885,7 +1913,7 @@ namespace Ufbx.Runtime
             }
         }
 
-        private static unsafe void PrintMaterials(ufbx_scene* pScene, StringBuilder sb)
+        private static unsafe void addStringMaterials(ufbx_scene* pScene, StringBuilder sb)
         {
             sb.AppendLine();
             sb.AppendLine("--- MATERIALS ---");
@@ -1899,22 +1927,84 @@ namespace Ufbx.Runtime
             }
         }
 
-        private static unsafe void PrintTextures(ufbx_scene* pScene, StringBuilder sb)
+        private static unsafe void addStringTextures(ufbx_scene* pScene, StringBuilder sb)
         {
             sb.AppendLine();
             sb.AppendLine("--- TEXTURES ---");
             ufbx_texture_list textures = pScene->textures;
+            sb.AppendLine($"  Count: {(int)textures.count}");
+
             for (int i = 0; i < (int)textures.count; i++)
             {
                 ufbx_texture* texture = textures.data[i];
-                sb.AppendLine($"  [{i}] Name: \"{CsUfbx.ConvertString(in texture->name)}\", " +
-                               $"Type: {texture->type}, " +
-                               $"Filename: \"{CsUfbx.ConvertString(in texture->filename)}\", " +
-                               $"RelativeFilename: \"{CsUfbx.ConvertString(in texture->relative_filename)}\"");
+                if (texture == null) continue;
+
+                string texName = CsUfbx.ConvertString(in texture->name);
+                sb.AppendLine($"  [{i}] Name: \"{texName}\"");
+                sb.AppendLine($"      ElementId: {texture->element_id}, TypedId: {texture->typed_id}, Type: {texture->type}");
+                sb.AppendLine($"      Filenames:");
+                sb.AppendLine($"          Filename: \"{CsUfbx.ConvertString(in texture->filename)}\"");
+                sb.AppendLine($"          Absolute: \"{CsUfbx.ConvertString(in texture->absolute_filename)}\"");
+                sb.AppendLine($"          Relative: \"{CsUfbx.ConvertString(in texture->relative_filename)}\"");
+                sb.AppendLine($"      File Info: HasFile={(texture->has_file != 0 ? "Yes" : "No")}, FileIndex: {texture->file_index}, ContentSize: {texture->content.size} bytes");
+
+                string videoName = texture->video != null ? CsUfbx.ConvertString(in texture->video->name) : "(null)";
+                sb.AppendLine($"      Video: \"{videoName}\"");
+
+                sb.AppendLine($"      Mapping & UV: UVSet: \"{CsUfbx.ConvertString(in texture->uv_set)}\", WrapU: {texture->wrap_u}, WrapV: {texture->wrap_v}");
+                sb.AppendLine($"      UV Transform: HasTransform={(texture->has_uv_transform != 0 ? "Yes" : "No")}");
+                if (texture->has_uv_transform != 0)
+                {
+                    sb.AppendLine($"          T: ({texture->uv_transform.translation.x:F4}, {texture->uv_transform.translation.y:F4}, {texture->uv_transform.translation.z:F4})");
+                    sb.AppendLine($"          R: ({texture->uv_transform.rotation.x:F4}, {texture->uv_transform.rotation.y:F4}, {texture->uv_transform.rotation.z:F4}, {texture->uv_transform.rotation.w:F4})");
+                    sb.AppendLine($"          S: ({texture->uv_transform.scale.x:F4}, {texture->uv_transform.scale.y:F4}, {texture->uv_transform.scale.z:F4})");
+                }
+
+                sb.AppendLine($"      Layers: {(int)texture->layers.count}");
+                for (int l = 0; l < (int)texture->layers.count; l++)
+                {
+                    ufbx_texture_layer layer = texture->layers.data[l];
+                    string layerTexName = layer.texture != null ? CsUfbx.ConvertString(in layer.texture->name) : "(null)";
+                    sb.AppendLine($"          Layer [{l}]: Texture=\"{layerTexName}\", BlendMode={layer.blend_mode}, Alpha={layer.alpha:F4}");
+                }
+
+                sb.AppendLine($"      File Textures Count: {(int)texture->file_textures.count}");
+                for (int ft = 0; ft < (int)texture->file_textures.count; ft++)
+                {
+                    ufbx_texture* subTex = texture->file_textures.data[ft];
+                    string subTexName = subTex != null ? CsUfbx.ConvertString(in subTex->name) : "(null)";
+                    sb.AppendLine($"          FileTexture [{ft}]: \"{subTexName}\"");
+                }
+
+                if (texture->shader != null)
+                {
+                    sb.AppendLine($"      Shader Texture: Name=\"{CsUfbx.ConvertString(in texture->shader->shader_name)}\", Type={texture->shader->type}, InputsCount={(int)texture->shader->inputs.count}");
+                }
             }
         }
 
-        private static unsafe void PrintLights(ufbx_scene* pScene, StringBuilder sb)
+        private static unsafe void addStringTextureFiles(ufbx_scene* pScene, StringBuilder sb)
+        {
+            sb.AppendLine();
+            sb.AppendLine("--- TEXTURE FILES ---");
+            ufbx_texture_file_list textureFiles = pScene->texture_files;
+            sb.AppendLine($"  Count: {(int)textureFiles.count}");
+
+            for (int i = 0; i < (int)textureFiles.count; i++)
+            {
+                ufbx_texture_file file = textureFiles.data[i];
+                sb.AppendLine($"  [{i}] Index: {file.index}");
+                sb.AppendLine($"      Filename: \"{CsUfbx.ConvertString(in file.filename)}\"");
+                sb.AppendLine($"      AbsoluteFilename: \"{CsUfbx.ConvertString(in file.absolute_filename)}\"");
+                sb.AppendLine($"      RelativeFilename: \"{CsUfbx.ConvertString(in file.relative_filename)}\"");
+                sb.AppendLine($"      Content Size: {file.content.size} bytes");
+                sb.AppendLine($"      Raw Filename Size: {file.raw_filename.size} bytes");
+                sb.AppendLine($"      Raw Absolute Filename Size: {file.raw_absolute_filename.size} bytes");
+                sb.AppendLine($"      Raw Relative Filename Size: {file.raw_relative_filename.size} bytes");
+            }
+        }
+
+        private static unsafe void addStringLights(ufbx_scene* pScene, StringBuilder sb)
         {
             sb.AppendLine();
             sb.AppendLine("--- LIGHTS ---");
@@ -1929,7 +2019,7 @@ namespace Ufbx.Runtime
             }
         }
 
-        private static unsafe void PrintCameras(ufbx_scene* pScene, StringBuilder sb)
+        private static unsafe void addStringCameras(ufbx_scene* pScene, StringBuilder sb)
         {
             sb.AppendLine();
             sb.AppendLine("--- CAMERAS ---");
@@ -1945,7 +2035,7 @@ namespace Ufbx.Runtime
             }
         }
 
-        private static unsafe void PrintBones(ufbx_scene* pScene, StringBuilder sb)
+        private static unsafe void addStringBones(ufbx_scene* pScene, StringBuilder sb)
         {
             sb.AppendLine();
             sb.AppendLine("--- BONES ---");
@@ -1993,7 +2083,7 @@ namespace Ufbx.Runtime
             }
         }
 
-        private static unsafe void PrintAnimation(ufbx_scene* pScene, StringBuilder sb)
+        private static unsafe void addStringAnimation(ufbx_scene* pScene, StringBuilder sb)
         {
             sb.AppendLine();
             sb.AppendLine("--- ANIMATION ---");
@@ -2018,21 +2108,6 @@ namespace Ufbx.Runtime
             }
         }
 
-        private static unsafe void PrintTextureFiles(ufbx_scene* pScene, StringBuilder sb)
-        {
-            sb.AppendLine();
-            sb.AppendLine("--- TEXTURE FILES ---");
-            ufbx_texture_file_list textureFiles = pScene->texture_files;
-            sb.AppendLine($"  Count: {(int)textureFiles.count}");
-            for (int i = 0; i < (int)textureFiles.count; i++)
-            {
-                ufbx_texture_file file = textureFiles.data[i];
-                sb.AppendLine($"  [{i}] Filename: \"{CsUfbx.ConvertString(in file.filename)}\", " +
-                               $"RelativeFilename: \"{CsUfbx.ConvertString(in file.relative_filename)}\", " +
-                               $"Content Size: {file.content.size} bytes");
-            }
-        }
-
         private static unsafe string describeElement(ufbx_element* pElement)
         {
             if (pElement == null) return "(null)";
@@ -2042,7 +2117,7 @@ namespace Ufbx.Runtime
             return $"{label} [type={pElement->type}, element_id={pElement->element_id}, typed_id={pElement->typed_id}]";
         }
 
-        private static unsafe void PrintConnections(ufbx_scene* pScene, StringBuilder sb)
+        private static unsafe void addStringConnections(ufbx_scene* pScene, StringBuilder sb)
         {
             sb.AppendLine();
             sb.AppendLine("--- CONNECTIONS ---");
