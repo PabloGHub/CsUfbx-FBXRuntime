@@ -1296,6 +1296,76 @@ namespace Ufbx.Runtime
         }
 
 
+        public static unsafe DataFaces GetDataFaces(ufbx_mesh* pMesh, ufbx_mesh_part* pPart)
+        {
+            int vertexCount = (int)pMesh->num_vertices;
+
+            Vector3[] vertices = new Vector3[vertexCount];
+            Vector3[] normals = new Vector3[vertexCount];
+            Vector2[] uvs = new Vector2[vertexCount];
+
+            bool hasNormals = pMesh->vertex_normal.exists == 1;
+            bool hasUVs = pMesh->vertex_uv.exists == 1;
+
+            // 1. Llenamos el arreglo posicional base
+            for (int i = 0; i < vertexCount; i++)
+            {
+                vertices[i] = pMesh->vertices.data[i].ToUnity();
+            }
+
+            // 2. Extraemos los triángulos usando los índices de caras de la mesh part
+            int totalTriangles = (int)pPart->num_triangles;
+            int[] triangles = new int[totalTriangles * 3];
+            int triIndex = 0;
+
+            for (ulong f = 0; f < (ulong)pPart->face_indices.count; f++)
+            {
+                uint faceIndex = pPart->face_indices.data[f];
+                ufbx_face* face = &pMesh->faces.data[faceIndex];
+
+                for (uint v = 2; v < face->num_indices; v++)
+                {
+                    uint i0 = face->index_begin;
+                    uint i1 = face->index_begin + v - 1;
+                    uint i2 = face->index_begin + v;
+
+                    // Extraemos los índices originales de los vértices
+                    uint vIdx0 = pMesh->vertex_indices.data[i0];
+                    uint vIdx1 = pMesh->vertex_indices.data[i1];
+                    uint vIdx2 = pMesh->vertex_indices.data[i2];
+
+                    // Construimos los triángulos de la parte
+                    triangles[triIndex++] = (int)vIdx0;
+                    triangles[triIndex++] = (int)vIdx1;
+                    triangles[triIndex++] = (int)vIdx2;
+
+                    // Proyectamos los datos de UVs y Normales al índice original del vértice
+                    if (hasNormals)
+                    {
+                        normals[vIdx0] = pMesh->vertex_normal.values.data[pMesh->vertex_normal.indices.data[i0]].ToUnity();
+                        normals[vIdx1] = pMesh->vertex_normal.values.data[pMesh->vertex_normal.indices.data[i1]].ToUnity();
+                        normals[vIdx2] = pMesh->vertex_normal.values.data[pMesh->vertex_normal.indices.data[i2]].ToUnity();
+                    }
+
+                    if (hasUVs)
+                    {
+                        uvs[vIdx0] = pMesh->vertex_uv.values.data[pMesh->vertex_uv.indices.data[i0]].ToUnity();
+                        uvs[vIdx1] = pMesh->vertex_uv.values.data[pMesh->vertex_uv.indices.data[i1]].ToUnity();
+                        uvs[vIdx2] = pMesh->vertex_uv.values.data[pMesh->vertex_uv.indices.data[i2]].ToUnity();
+                    }
+                }
+            }
+
+            return new DataFaces
+            {
+                Vertices = vertices,
+                Normals = hasNormals ? normals : null,
+                UV0 = hasUVs ? uvs : null,
+                Triangles = triangles
+            };
+        }
+
+
         // TODO: Comprobar que llega a 1 de peso entre todos.
         public static unsafe (NativeList<BoneWeight1> weights, NativeList<byte> bonesPerVertex) GetBoneWeight(ufbx_mesh* pMesh)
         {
