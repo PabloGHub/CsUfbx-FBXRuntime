@@ -30,23 +30,18 @@ namespace Ufbx
     // ************************************************ //
     public static class CsUfbx
     {
-        public static unsafe ref ufbx_scene LoadSceneRef(string pPath, out ufbx_error OutError)
+
+
+        public static unsafe ufbx_scene* LoadScene(string pPath, ufbx_error* pError)
         {
-            return ref In.Internal_LoadScene(pPath, out OutError);
+            ufbx_load_opts* o = default(ufbx_load_opts*);
+            return In.Internal_LoadScene(pPath, pError, o);
         }
 
-        public static unsafe ufbx_scene* LoadScene(string pPath, out ufbx_error* OutError)
+        public static unsafe ufbx_scene* LoadScene(string pPath, ufbx_error* pError, ufbx_load_opts* pOptions)
         {
-            return In.Internal_LoadScene(pPath, out OutError);
+            return In.Internal_LoadScene(pPath, pError, pOptions);
         }
-
-        public static unsafe ufbx_scene* LoadScene(string pPath, out ufbx_error OutError)
-        {
-            ufbx_scene* s = In.Internal_LoadScene(pPath, out ufbx_error* e);
-            OutError = *e;
-            return s;
-        }
-
 
         // Eh Comprobado que \/ tambien funciona.
         // new string((sbyte*)node->name.data, 0, (int)node->name.length)
@@ -139,44 +134,20 @@ namespace Ufbx
     {
         // [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         // public unsafe static extern ufbx_scene* ufbx_load_file([NativeTypeName("const char *")] sbyte* filename, [NativeTypeName("const ufbx_load_opts *")] ufbx_load_opts* opts, ufbx_error* error);
-        internal static unsafe ufbx_scene* Internal_LoadScene(string pPath, out ufbx_error* OutError)
+        internal static unsafe ufbx_scene* Internal_LoadScene(string pPath, ufbx_error* pError, ufbx_load_opts* pOptions)
         {
             byte[] pPathBytes = Encoding.UTF8.GetBytes(pPath + "\0");
-            ufbx_load_opts* opts = default;
-            ufbx_error* error = default;
             ufbx_scene* scene;
 
             fixed (byte* pathPtr = pPathBytes)
             {
-                scene = ufbx_load_file((sbyte*)pathPtr, opts, error);
+                scene = ufbx_load_file((sbyte*)pathPtr, pOptions, pError);
             }
 
-            OutError = error;
-
-            if (error->type != ufbx_error_type.UFBX_ERROR_NONE)
+            if (pError->type != ufbx_error_type.UFBX_ERROR_NONE)
                 return null;
 
             return scene;
-        }
-
-        internal static unsafe ref ufbx_scene Internal_LoadScene(string pPath, out ufbx_error OutError)
-        {
-            byte[] pPathBytes = Encoding.UTF8.GetBytes(pPath + "\0");
-            ufbx_load_opts* opts = default;
-            ufbx_error* error = default;
-            ufbx_scene* scene;
-
-            fixed (byte* pathPtr = pPathBytes)
-            {
-                scene = ufbx_load_file((sbyte*)pathPtr, opts, error);
-            }
-
-            OutError = *error;
-
-            //if (error->type != ufbx_error_type.UFBX_ERROR_NONE)
-            //    return ref default;
-
-            return ref *scene;
         }
     }
 
