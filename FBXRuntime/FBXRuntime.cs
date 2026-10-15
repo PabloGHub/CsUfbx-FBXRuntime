@@ -446,8 +446,8 @@ namespace Ufbx.Runtime
         {
             MeshFilter meshFilter = pTarjet.AddComponent<MeshFilter>();
             MeshRenderer meshRenderer = pTarjet.AddComponent<MeshRenderer>();
-            Mesh unityMesh = (uint)pMesh->face_group_parts.count > 1
-                            ? CreateMeshByPart(pMesh)
+            Mesh unityMesh = (uint)pMesh->material_parts.count > 1
+                            ? CreateMeshByMaterialPart(pMesh)
                             : CreateMesh(pMesh);
 
 
@@ -460,8 +460,8 @@ namespace Ufbx.Runtime
         public static unsafe void BuildSkinnedMeshRenderer(ufbx_mesh* pMesh, GameObject pTarjet, string pShader = null)
         {
             SkinnedMeshRenderer skinned = pTarjet.AddComponent<SkinnedMeshRenderer>();
-            Mesh unityMesh = (uint)pMesh->face_group_parts.count > 1
-                            ? CreateMeshByPart(pMesh)
+            Mesh unityMesh = (uint)pMesh->material_parts.count > 1
+                            ? CreateMeshByMaterialPart(pMesh)
                             : CreateMesh(pMesh);
 
 
@@ -535,7 +535,7 @@ namespace Ufbx.Runtime
         }
 
 
-        public static unsafe Mesh CreateMeshByPart(ufbx_mesh* pMesh)
+        public static unsafe Mesh CreateMeshByMeshPart(ufbx_mesh* pMesh)
         {
             nuint c = pMesh->face_group_parts.count;
 
@@ -635,7 +635,87 @@ namespace Ufbx.Runtime
             return mesh;
         }
 
+        
+        // TODO: Optimizar
+        public static unsafe Mesh CreateMeshByMaterialPart(ufbx_mesh* pMesh)
+        {
+            nuint c = pMesh->material_parts.count;
 
+            if (c < 1) return CreateMesh(pMesh);
+
+            DataFaces globalData = GetDataFaces(pMesh);
+            DataFaces[] partFaces = new DataFaces[c];
+            Mesh mesh;
+
+            { ////// Globales : Malla principal
+                mesh = new Mesh
+                {
+                    name = pMesh->name.data != null
+                            ? pMesh->name.ToString()
+                            : "Ufbx_Mesh",
+
+                    vertices = globalData.Vertices,
+                };
+
+                if (globalData.Normals != null)
+                    mesh.normals = globalData.Normals;
+                else
+                    mesh.RecalculateNormals();
+
+                if (globalData.UV0 != null)
+                    mesh.uv = globalData.UV0;
+
+                mesh.RecalculateTangents();
+            } //////
+
+            if (c < 1)
+            {
+                mesh.triangles = globalData.Triangles;
+                return mesh;
+            }
+            mesh.subMeshCount = (int)c;
+
+            { ////// Faces : SubMallas
+                SubMeshDescriptor[] subMeshes = new SubMeshDescriptor[c];
+                int totalIndices = 0;
+
+                for (int i = 0; i < (int)c; i++)
+                {
+                    ufbx_mesh_part* part = &pMesh->material_parts.data[i];
+                    partFaces[i] = GetDataFaces(pMesh, part);
+                    totalIndices += partFaces[i].Triangles.Length;
+                }
+
+                int[] allTriangles = new int[totalIndices];
+                int offset = 0;
+
+                for (int i = 0; i < (int)c; i++)
+                {
+                    int indexCount = partFaces[i].Triangles.Length;
+                    int indexStart = offset;
+
+                    Array.Copy(partFaces[i].Triangles, 0, allTriangles, offset, indexCount);
+                    offset += indexCount;
+
+                    subMeshes[i] = new SubMeshDescriptor
+                    {
+                        topology = MeshTopology.Triangles,
+                        indexStart = indexStart,
+                        indexCount = indexCount,
+                        baseVertex = 0,
+                        firstVertex = 0,
+                        vertexCount = globalData.Vertices.Length
+                    };
+                }
+
+                mesh.SetIndexBufferParams(totalIndices, IndexFormat.UInt32);
+                mesh.SetIndexBufferData(allTriangles, 0, 0, totalIndices, MeshUpdateFlags.DontRecalculateBounds);
+                mesh.SetSubMeshes(subMeshes, MeshUpdateFlags.DontRecalculateBounds);
+                mesh.RecalculateBounds();
+            } //////
+
+            return mesh;
+        }
         private static unsafe bool isBuildSkinnedMesh(ufbx_node* pMeshNode)
         {
             if (pMeshNode->mesh == null)
