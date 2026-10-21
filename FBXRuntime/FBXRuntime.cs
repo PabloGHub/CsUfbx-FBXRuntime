@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 //using System.Numerics;
 using System.Reflection;
@@ -41,10 +42,12 @@ namespace Ufbx.Runtime
      -- Minicosas a Aprender:
         * Que es una Matrix
         * Descubirir porque m33 debe ser 1f de la matrix4x4
+        * Porque en un fixed (byte* ptr = arrayBytes) no hace falta poner & en el array
         * Recordar que hacia ^
         * Entender GetDataFace
         * Descubrir porque es necesario los bindPoses para que los huesos y peso de los huesos funcione
         * Descubrir que es cluster->geometry_to_bone
+        * Descubrir que es una Tangente en modelos 3D
      */
 
 
@@ -53,8 +56,8 @@ namespace Ufbx.Runtime
         * fix UVs
         * Si un vertice no tiene pesos asigarle una interporlacion entre el anterior y el siguiente y si no al [0] con 1f.
         * Crear Animaciones
-        * BlendsShapes
-        * Dar las targentes a la Mesh
+        * Crear BlendsShapes
+        * Dar las targentes a la Mesh, ¿Que es una tangente?
         * Crear Camara
         * Crear Luces
      */
@@ -245,7 +248,7 @@ namespace Ufbx.Runtime
         }
 
 
-
+        
 
         public static unsafe GameObject Instantiate(ufbx_scene* pScene)
         {
