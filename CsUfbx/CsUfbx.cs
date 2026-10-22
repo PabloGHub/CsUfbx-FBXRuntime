@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -37,11 +38,32 @@ namespace Ufbx
             ufbx_load_opts* o = default(ufbx_load_opts*);
             return In.Internal_LoadScene(pPath, pError, o);
         }
-
         public static unsafe ufbx_scene* LoadScene(string pPath, ufbx_error* pError, ufbx_load_opts* pOptions)
         {
             return In.Internal_LoadScene(pPath, pError, pOptions);
         }
+
+        public static unsafe ufbx_scene* LoadScene(MemoryStream pMemory, ufbx_error* pError)
+        {
+            ufbx_load_opts* o = default(ufbx_load_opts*);
+            return In.Internal_LoadScene(pMemory.ToArray(), pError, o);
+        }
+        public static unsafe ufbx_scene* LoadScene(Span<byte> pMemory, ufbx_error* pError)
+        {
+            ufbx_load_opts* o = default(ufbx_load_opts*);
+            return In.Internal_LoadScene(pMemory, pError, o);
+        }
+        public static unsafe ufbx_scene* LoadScene(MemoryStream pMemory, ufbx_error* pError, ufbx_load_opts* pOptions)
+        {
+            return In.Internal_LoadScene(pMemory.ToArray(), pError, pOptions);
+        }
+        public static unsafe ufbx_scene* LoadScene(Span<byte> pMemory, ufbx_error* pError, ufbx_load_opts* pOptions)
+        {
+            return In.Internal_LoadScene(pMemory, pError, pOptions);
+        }
+
+
+
 
         // Eh Comprobado que \/ tambien funciona.
         // new string((sbyte*)node->name.data, 0, (int)node->name.length)
@@ -142,6 +164,26 @@ namespace Ufbx
             fixed (byte* pathPtr = pPathBytes)
             {
                 scene = ufbx_load_file((sbyte*)pathPtr, pOptions, pError);
+            }
+
+            if (pError->type != ufbx_error_type.UFBX_ERROR_NONE)
+                return null;
+
+            return scene;
+        }
+        internal static unsafe ufbx_scene* Internal_LoadScene(Span<byte> pMemory, ufbx_error* pError, ufbx_load_opts* pOptions)
+        {
+            ufbx_scene* scene;
+
+            fixed (void* ptr = pMemory)
+            {
+                scene = ufbx_load_memory
+                (
+                    data:       ptr,
+                    data_size:  new UIntPtr((ulong)pMemory.Length),
+                    opts:       pOptions,
+                    error:      pError
+                );
             }
 
             if (pError->type != ufbx_error_type.UFBX_ERROR_NONE)

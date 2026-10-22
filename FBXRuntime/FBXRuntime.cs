@@ -267,6 +267,8 @@ namespace Ufbx.Runtime
 
         public static unsafe GameObject Instantiate(ufbx_node* pRoot) =>
             BuildNode(pRoot);
+        public static unsafe GameObject Instantiate(ufbx_node* pRoot, Transform pParent) =>
+            BuildNode(pRoot, pParent);
 
 
 
