@@ -248,28 +248,19 @@ namespace Ufbx.Runtime
         }
 
 
-        
+
 
         public static unsafe GameObject Instantiate(ufbx_scene* pScene)
         {
-            ufbx_node* rootNode = pScene->root_node;
-            GameObject root;
-
-            root = BuildNode(rootNode);
-            root.name = Path.GetFileNameWithoutExtension(pScene->metadata.filename.ToString());
-
-
-            return root;
+            return Instantiate(pScene, null);
         }
         public static unsafe GameObject Instantiate(ufbx_scene* pScene, Transform pParent)
         {
             ufbx_node* rootNode = pScene->root_node;
             GameObject root;
 
-            root = BuildNode(rootNode);
+            root = BuildNode(rootNode, pParent);
             root.name = Path.GetFileNameWithoutExtension(pScene->metadata.filename.ToString());
-
-            root.transform.parent = pParent;
 
             return root;
         }
