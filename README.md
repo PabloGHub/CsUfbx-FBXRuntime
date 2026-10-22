@@ -2,97 +2,96 @@
 
 # CsUfbx & FBXRuntime
 
-**Carga archivos FBX desde C# y convierte escenas FBX en objetos de Unity durante la ejecución.**
+**Load FBX files from C# and turn FBX scenes into Unity objects at runtime.**
 
-![Estado](https://img.shields.io/badge/estado-en%20desarrollo-orange?style=for-the-badge)
-![Lenguaje](https://img.shields.io/badge/C%23-CsUfbx-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
-![Motor](https://img.shields.io/badge/Unity-FBXRuntime-black?style=for-the-badge&logo=unity)
-![ufbx integrado](https://img.shields.io/badge/ufbx%20integrado-v0.23.0-blue?style=for-the-badge)
+![Status](https://img.shields.io/badge/status-in%20development-orange?style=for-the-badge)
+![Language](https://img.shields.io/badge/C%23-CsUfbx-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
+![Engine](https://img.shields.io/badge/Unity-FBXRuntime-black?style=for-the-badge&logo=unity)
+![Bundled ufbx](https://img.shields.io/badge/bundled%20ufbx-v0.23.0-blue?style=for-the-badge)
 
-[🇪🇸 Castellano](README.md) · [🇬🇧 English](README.en.md)
+[🇪🇸 Castellano](README.es.md) · [🇬🇧 English](README.md)
 
 </div>
 
 > [!WARNING]
-> **Proyecto en desarrollo.** Lo básico de la carga y conversión de modelos ya está implementado, pero todavía faltan funciones importantes y hay casos de FBX que pueden no importarse correctamente. La API y el comportamiento pueden cambiar entre versiones. No se considera todavía un importador completo ni listo para producción.
+> **Work in progress.** The basic loading and conversion workflow is implemented, but important features are still missing and some FBX files may not import correctly. The API and behavior may change between versions. This is not yet a complete or production-ready FBX importer.
 
-## ✨ ¿Qué es?
+## ✨ What is it?
 
-Este repositorio reúne dos piezas relacionadas que usan la biblioteca nativa [**ufbx**](https://github.com/ufbx/ufbx), un lector de archivos FBX:
+This repository brings together two related components built around the native [**ufbx**](https://github.com/ufbx/ufbx) FBX loader:
 
-- **`CsUfbx`** proporciona una API para acceder a `ufbx` desde **C# convencional**, sin depender de las clases de Unity. Es la opción para herramientas de escritorio, aplicaciones .NET, utilidades o programas que necesiten leer la estructura de un FBX.
-- **`FBXRuntime`** es la capa específica para **Unity**. Usa `CsUfbx` para leer la escena y crear objetos de Unity —jerarquía de `GameObject`, transformaciones, mallas, esqueletos y materiales— en tiempo de ejecución.
+- **`CsUfbx`** provides a C# API for accessing `ufbx` from **regular C# applications**, without depending on Unity classes. It is intended for desktop tools, .NET applications, command-line utilities, or other programs that need to inspect FBX data.
+- **`FBXRuntime`** is the **Unity-specific** layer. It uses `CsUfbx` to read a scene and create Unity objects — `GameObject` hierarchy, transforms, meshes, skeletons, and materials — at runtime.
 
-`CsUfbx` no es un lector FBX escrito íntegramente en código administrado: actúa como puente C# hacia la biblioteca nativa `ufbx`. Para ejecutarlo fuera de Unity también hay que integrar la biblioteca nativa correcta para la plataforma de destino.
+`CsUfbx` is not a fully managed FBX parser written only in C#: it acts as a C# bridge to the native `ufbx` library. Using it outside Unity still requires the correct native library and interop setup for the target platform.
 
-## 🧩 Cómo encaja cada parte
+## How the pieces fit together
 
 ```mermaid
 flowchart TD
-    A[Archivo .fbx] --> B[ufbx · biblioteca nativa C]
-    B --> C[CsUfbx · API / interop C#]
-    C --> D[Aplicación C# normal]
-    C --> E[FBXRuntime · integración Unity]
-    E --> F[GameObjects y Transform]
-    E --> G[Mesh y SkinnedMeshRenderer]
-    E --> H[Materiales y texturas]
+    A[FBX file] --> B[ufbx · native C library]
+    B --> C[CsUfbx · C# API / interop]
+    C --> D[Regular C# application]
+    C --> E[FBXRuntime · Unity integration]
+    E --> F[GameObjects and Transforms]
+    E --> G[Mesh and SkinnedMeshRenderer]
+    E --> H[Materials and textures]
 ```
 
-| Componente | Para qué sirve | ¿Depende de Unity? |
+| Component | Purpose | Depends on Unity? |
 |---|---|---|
-| **ufbx** | Analiza el archivo FBX y expone sus datos. | No; es la biblioteca nativa de terceros. |
-| **CsUfbx** | Expone funciones y estructuras de `ufbx` mediante C#. | **No** depende de `UnityEngine`, pero sí de la biblioteca nativa y de su interop. |
-| **FBXRuntime** | Convierte los datos leídos en objetos que Unity puede utilizar. | **Sí**, utiliza `UnityEngine`. |
+| **ufbx** | Parses the FBX file and exposes its data. | No; it is the third-party native library. |
+| **CsUfbx** | Exposes `ufbx` functions and structures through C#. | **No** `UnityEngine` dependency, but it does need the native library and interop. |
+| **FBXRuntime** | Converts parsed data into objects that Unity can use. | **Yes**, it uses `UnityEngine`. |
 
-## ✅ Lo que ya funciona
+## What already works
 
-La funcionalidad actual cubre una base útil para seguir construyendo el importador:
+The current implementation provides a useful foundation for further development:
 
-- Lectura de una escena FBX mediante `LoadScene`.
-- Construcción de la jerarquía de nodos como `GameObject` y conversión de sus transformaciones.
-- Creación de mallas estáticas y uso de `SkinnedMeshRenderer` para mallas con deformación por huesos.
-- Asignación de huesos, *bind poses* y pesos de piel en el flujo actual.
-- Creación de submallas y asignación de materiales a las mallas.
-- Soporte inicial de propiedades de material como color base, rugosidad, suavidad y emisión.
-- Carga y asignación de algunas texturas habituales, incluidas rutas externas y contenido embebido, para canales como color base, normales y emisión.
-- Selección de un shader iluminado predeterminado para **Built-in Render Pipeline** y **URP**.
+- Loading an FBX scene through `LoadScene`.
+- Building the node hierarchy as `GameObject` objects and converting node transforms.
+- Creating static meshes and using `SkinnedMeshRenderer` for meshes deformed by bones.
+- Assigning bones, bind poses, and skin weights in the current workflow.
+- Creating submeshes and assigning materials to meshes.
+- Initial support for material properties such as base color, roughness, smoothness, and emission.
+- Loading and assigning common textures, including external files and embedded image data, for channels such as base color, normals, and emission.
+- Choosing a default lit shader for **Built-in Render Pipeline** and **URP**.
 
-> Estas funciones constituyen una base de trabajo, no una garantía de compatibilidad con cualquier FBX. La conversión de materiales, UV, piel y otros datos todavía necesita mejoras y más pruebas.
+> These features provide a starting point, not a guarantee that every FBX file will work. Material conversion, UVs, skinning edge cases, and other data still need improvements and more testing.
 
-## 🚧 Pendiente de desarrollar
+## Roadmap / known gaps
 
-La siguiente lista recoge las tareas marcadas en comentarios dentro de [`FBXRuntime.cs`](https://github.com/PabloGHub/CsUfbx-FBXRuntime/blob/master/FBXRuntime/FBXRuntime.cs), junto con otros puntos que el propio código deja sin terminar.
+The list below reflects tasks left in comments in [`FBXRuntime.cs`](https://github.com/PabloGHub/CsUfbx-FBXRuntime/blob/master/FBXRuntime/FBXRuntime.cs), along with other parts of the code that are not implemented yet.
 
-### Geometría y mallas
+### Geometry and meshes
 
-- [ ] Corregir el mapeado de las coordenadas **UV**.
-- [ ] Importar las **tangentes del FBX** en lugar de depender de `Mesh.RecalculateTangents()`.
-- [ ] Optimizar la creación y el procesamiento de mallas.
-- [ ] Completar los casos pendientes de conversión de geometría, armaduras y mallas.
+- [ ] Read **tangents from the FBX** instead of relying on `Mesh.RecalculateTangents()`.
+- [ ] Optimize mesh creation and processing.
+- [ ] Complete remaining geometry, armature, and mesh-conversion cases.
 
-### Esqueletos, animación y escena
+### Skeletons, animation, and scene objects
 
-- [ ] Resolver los vértices que no tengan pesos de piel: interpolar usando los vértices vecinos cuando sea posible y, como último recurso, asignar el hueso inicial con un peso de `1.0`.
-- [ ] Crear e importar **animaciones**.
-- [ ] Crear e importar **BlendShapes**.
-- [ ] Crear las **cámaras** de Unity a partir de las cámaras del FBX.
-- [ ] Crear las **luces** de Unity a partir de las luces del FBX.
-- [ ] Añadir configuración para decidir, entre otras cosas, si la raíz se interpreta en espacio local o global.
+- [ ] Handle vertices with no skin weights: interpolate using neighboring vertices when possible and, as a fallback, assign the first bone with a weight of `1.0`.
+- [ ] Create and import **animations**.
+- [ ] Create and import **BlendShapes**.
+- [ ] Create Unity **cameras** from FBX cameras.
+- [ ] Create Unity **lights** from FBX lights.
+- [ ] Add configuration for choices such as interpreting the root in local or global space.
 
-### Materiales y texturas
+### Materials and textures
 
-- [ ] Completar el mapeado de propiedades de shader y la asignación automática de texturas a las propiedades correspondientes.
-- [ ] Evitar recrear objetos `Texture2D` en cada aplicación de propiedades; reutilizar o almacenar en caché las texturas.
-- [ ] Completar el tratamiento de tipos de textura que actualmente están comentados o sin resolver, como las texturas *layered*, procedurales o generadas por shader.
+- [ ] Complete shader-property mapping and automatically assign textures to the corresponding properties.
+- [ ] Avoid creating new `Texture2D` objects every time material properties are applied; reuse or cache textures.
+- [ ] Complete handling for texture types that are currently commented out or unresolved, such as layered, procedural, and shader-generated textures.
 
-### Exportación
+### Export
 
-- [ ] Implementar la exportación de un `GameObject` o una escena de Unity a FBX. Los métodos `Export(...)` de `FBXRuntime` están marcados actualmente como **WIP** y lanzan `NotImplementedException`.
-- [ ] Implementar el guardado de escenas en archivo desde la capa `CsUfbx`, que también está marcado como pendiente.
+- [ ] Implement exporting a Unity `GameObject` or scene to FBX. The `FBXRuntime` `Export(...)` methods are currently **WIP** and throw `NotImplementedException`.
+- [ ] Implement saving scenes to a file through `CsUfbx`.
 
-## 🚀 Ejemplo mínimo en Unity
+## Minimal Unity example
 
-`FBXRuntime` ofrece `LoadScene(...)` para leer el archivo y `Instantiate(...)` para convertir la escena cargada en objetos de Unity. Como la API maneja punteros, el código que lo use debe permitir `unsafe`.
+`FBXRuntime` provides `LoadScene(...)` to read the file and `Instantiate(...)` to convert the loaded scene into Unity objects. Since the API uses pointers, the calling code must allow `unsafe` code.
 
 ```csharp
 using Ufbx;
@@ -108,7 +107,7 @@ public static class FbxLoaderExample
 
         if (scene == null)
         {
-            Debug.LogError($"No se pudo cargar el FBX: {error.description}");
+            Debug.LogError($"Could not load FBX: {error.description}");
             return null;
         }
 
@@ -117,34 +116,34 @@ public static class FbxLoaderExample
 }
 ```
 
-Este ejemplo solo muestra el flujo básico de carga e instanciación. Al integrarlo en una aplicación real, revisa también el ciclo de vida y la liberación de la memoria nativa de la escena, además del manejo de errores.
+This snippet only demonstrates the basic load-and-instantiate flow. In a real application, also review the native scene's lifetime and memory cleanup, as well as error handling.
 
-## 📦 Estructura del repositorio
+## Repository structure
 
 ```text
 CsUfbx-FBXRuntime/
-├── CsUfbx/             # Interop C# y fuentes nativas de ufbx
-├── FBXRuntime/         # Conversión a objetos de Unity
-└── Unity_6000.1.1f1/   # Proyecto de Unity usado para pruebas
+├── CsUfbx/             # C# interop and native ufbx source files
+├── FBXRuntime/         # Conversion to Unity objects
+└── Unity_6000.1.1f1/   # Unity project used for testing
 ```
 
-## ⬇️ `ufbx`: repositorio y descarga
+## `ufbx`: repository and download
 
-La versión más reciente que aparece en el changelog oficial consultado para esta documentación es **v0.23.1**, publicada el **24 de septiembre de 2026**. Puedes obtener el código fuente desde estos enlaces:
+The latest version listed in the official changelog consulted for this documentation is **v0.23.1**, published on **September 24, 2026**. Get the source code here:
 
-- **[Descargar ufbx v0.23.1 (ZIP)](https://github.com/ufbx/ufbx/archive/refs/tags/v0.23.1.zip)**
-- [Repositorio oficial de ufbx](https://github.com/ufbx/ufbx)
-- [Documentación oficial](https://ufbx.github.io/)
-- [Changelog / historial de versiones](https://github.com/ufbx/ufbx/blob/main/misc/changelog.md)
+- **[Download ufbx v0.23.1 (ZIP)](https://github.com/ufbx/ufbx/archive/refs/tags/v0.23.1.zip)**
+- [Official ufbx repository](https://github.com/ufbx/ufbx)
+- [Official documentation](https://ufbx.github.io/)
+- [Changelog / version history](https://github.com/ufbx/ufbx/blob/main/misc/changelog.md)
 
-**Nota sobre la versión incluida:** el `ufbx.h` que actualmente contiene este repositorio declara `UFBX_HEADER_VERSION` como **0.23.0**. Por tanto, el código fuente incluido aquí no es todavía la última versión upstream. Si actualizas `ufbx.c` y `ufbx.h` a v0.23.1, comprueba también las declaraciones/interoperabilidad C# y vuelve a probar la compilación: no conviene mezclar versiones de la API nativa y sus estructuras enlazadas sin verificar su compatibilidad.
+**Bundled version note:** the `ufbx.h` currently in this repository defines `UFBX_HEADER_VERSION` as **0.23.0**. Therefore, the bundled source is not yet the latest upstream version. If you update `ufbx.c` and `ufbx.h` to v0.23.1, also check the C# interop declarations and retest the build. Do not mix native API versions and their mapped structures without verifying compatibility.
 
-## 🔗 Enlaces del proyecto
+## Project links
 
-- [Repositorio CsUfbx-FBXRuntime](https://github.com/PabloGHub/CsUfbx-FBXRuntime)
-- [Implementación de `CsUfbx`](https://github.com/PabloGHub/CsUfbx-FBXRuntime/blob/master/CsUfbx/CsUfbx.cs)
-- [Implementación de `FBXRuntime`](https://github.com/PabloGHub/CsUfbx-FBXRuntime/blob/master/FBXRuntime/FBXRuntime.cs)
+- [CsUfbx-FBXRuntime repository](https://github.com/PabloGHub/CsUfbx-FBXRuntime)
+- [`CsUfbx` implementation](https://github.com/PabloGHub/CsUfbx-FBXRuntime/blob/master/CsUfbx/CsUfbx.cs)
+- [`FBXRuntime` implementation](https://github.com/PabloGHub/CsUfbx-FBXRuntime/blob/master/FBXRuntime/FBXRuntime.cs)
 
 ---
 
-<p align="center"><sub>Proyecto en desarrollo · La importación básica ya está en marcha; el soporte completo de FBX aún está pendiente.</sub></p>
+<p align="center"><sub>Work in progress · Basic importing is underway; complete FBX support is still on the roadmap.</sub></p>
