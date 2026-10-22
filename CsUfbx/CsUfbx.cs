@@ -65,29 +65,6 @@ namespace Ufbx
 
 
 
-        // Eh Comprobado que \/ tambien funciona.
-        // new string((sbyte*)node->name.data, 0, (int)node->name.length)
-        [Obsolete("Use: ConvertString")]
-        public static unsafe string UfbxStringToString(ref ufbx_string pUSTR)
-        {
-            if (pUSTR.data == null || pUSTR.length == UIntPtr.Zero)
-                return string.Empty;
-            return Encoding.UTF8.GetString((byte*)pUSTR.data, (int)pUSTR.length);
-        }
-        [Obsolete("Use: ConvertString")]
-        public static unsafe string UfbxStringToManaged(ufbx_string pUfbxString)
-        {
-            if (pUfbxString.data == null || pUfbxString.length == UIntPtr.Zero)
-                return string.Empty;
-
-            int length = (int)pUfbxString.length;
-            byte[] bytes = new byte[length];
-            for (int i = 0; i < length; i++)
-            {
-                bytes[i] = (byte)pUfbxString.data[i];
-            }
-            return Encoding.UTF8.GetString(bytes);
-        }
 
 
 
