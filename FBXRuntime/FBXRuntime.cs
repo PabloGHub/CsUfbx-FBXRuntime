@@ -246,6 +246,20 @@ namespace Ufbx.Runtime
                 return CsUfbx.LoadScene(pPath, pError, opts);
             }
         }
+        public static unsafe ufbx_scene* LoadScene(Span<byte> pMemory, ufbx_error* pError)
+        {
+            fixed (ufbx_load_opts* opts = &DefaultOptions)
+            {
+                return CsUfbx.LoadScene(pMemory, pError, opts);
+            }
+        }
+        public static unsafe ufbx_scene* LoadScene(MemoryStream pMemory, ufbx_error* pError)
+        {
+            fixed (ufbx_load_opts* opts = &DefaultOptions)
+            {
+                return CsUfbx.LoadScene(pMemory, pError, opts);
+            }
+        }
 
 
 
