@@ -229,6 +229,7 @@ namespace Ufbx.Runtime
                 up = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_Y,
                 front = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_Z
             },
+            space_conversion = ufbx_space_conversion.UFBX_SPACE_CONVERSION_MODIFY_GEOMETRY,
         };
 
 
@@ -1620,7 +1621,7 @@ namespace Ufbx.Runtime
                 for (uint w = 0; w < vertex->num_weights; w++)
                 {
                     ufbx_skin_weight* weight = &pDeformer->weights.data[w + vertex->weight_begin];
-                    pWeights.Add(new BoneWeight1() { weight = (float)weight->weight, boneIndex = (int)weight->cluster_index + (int)pBetweenClusters });
+                    pWeights.Add(new BoneWeight1() { weight = (float)weight->weight, boneIndex = (int)(weight->cluster_index + pBetweenClusters) });
                 }
             }
         }
@@ -1948,6 +1949,7 @@ namespace Ufbx.Runtime
             ref ufbx_scene_settings settings = ref pScene->settings;
 
             sb.AppendLine($"  Unit Meters: {settings.unit_meters}");
+            sb.AppendLine($"  Tarjet Unit Meters: {settings.tage}");
             sb.AppendLine($"  Frames Per Second: {settings.frames_per_second}");
             sb.AppendLine($"  Ambient Color: ({settings.ambient_color.x}, {settings.ambient_color.y}, {settings.ambient_color.z})");
             sb.AppendLine($"  Default Camera: {CsUfbx.ConvertString(in settings.default_camera)}");
