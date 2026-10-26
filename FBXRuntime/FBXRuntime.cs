@@ -1949,7 +1949,6 @@ namespace Ufbx.Runtime
             ref ufbx_scene_settings settings = ref pScene->settings;
 
             sb.AppendLine($"  Unit Meters: {settings.unit_meters}");
-            sb.AppendLine($"  Tarjet Unit Meters: {settings.tage}");
             sb.AppendLine($"  Frames Per Second: {settings.frames_per_second}");
             sb.AppendLine($"  Ambient Color: ({settings.ambient_color.x}, {settings.ambient_color.y}, {settings.ambient_color.z})");
             sb.AppendLine($"  Default Camera: {CsUfbx.ConvertString(in settings.default_camera)}");
