@@ -325,6 +325,8 @@ namespace Ufbx.Runtime
 
                 smr.sharedMesh.SetBoneWeights(bonesPerVertex.ToArray(Allocator.Temp), weight.ToArray(Allocator.Temp));
 
+                weight.Dispose();
+                bonesPerVertex.Dispose();
             }
 
         }
