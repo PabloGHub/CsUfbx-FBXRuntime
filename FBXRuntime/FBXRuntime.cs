@@ -223,6 +223,14 @@ namespace Ufbx.Runtime
         public static readonly ufbx_load_opts DefaultOptions = new()
         {
             clean_skin_weights = 1,
+            generate_missing_normals = 1,
+            normalize_normals = 1,
+            normalize_tangents = 1,
+
+            inherit_mode_handling = ufbx_inherit_mode_handling.UFBX_INHERIT_MODE_HANDLING_HELPER_NODES,
+            geometry_transform_handling = ufbx_geometry_transform_handling.UFBX_GEOMETRY_TRANSFORM_HANDLING_MODIFY_GEOMETRY,
+            handedness_conversion_axis = ufbx_mirror_axis.UFBX_MIRROR_AXIS_Z,
+
             target_axes = new ufbx_coordinate_axes
             {
                 right = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_NEGATIVE_X,
@@ -230,6 +238,7 @@ namespace Ufbx.Runtime
                 front = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_Z
             },
             space_conversion = ufbx_space_conversion.UFBX_SPACE_CONVERSION_MODIFY_GEOMETRY,
+            target_unit_meters = 1d,
         };
 
 
