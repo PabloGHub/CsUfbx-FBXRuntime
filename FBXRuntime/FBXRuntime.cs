@@ -229,7 +229,7 @@ namespace Ufbx.Runtime
 
             inherit_mode_handling = ufbx_inherit_mode_handling.UFBX_INHERIT_MODE_HANDLING_HELPER_NODES,
             geometry_transform_handling = ufbx_geometry_transform_handling.UFBX_GEOMETRY_TRANSFORM_HANDLING_MODIFY_GEOMETRY,
-            handedness_conversion_axis = ufbx_mirror_axis.UFBX_MIRROR_AXIS_Z,
+            handedness_conversion_axis = ufbx_mirror_axis.UFBX_MIRROR_AXIS_X,
 
             target_axes = new ufbx_coordinate_axes
             {
