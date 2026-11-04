@@ -1608,6 +1608,8 @@ namespace Ufbx.Runtime
             return (weights, bonesPerVertex);
         }
 
+
+#if false
         // TODO: Un mejor nombre.
         private static unsafe void addVertexArmature(ufbx_skin_deformer* pDeformer, ref nuint pBetweenClusters, ref NativeList<byte> pBonesPerVertex, ref NativeList<BoneWeight1> pWeights)
         {
@@ -1636,6 +1638,70 @@ namespace Ufbx.Runtime
                 }
             }
         }
+#endif
+        
+        private static unsafe void addVertexArmature(ufbx_skin_deformer* pDeformer, ref nuint pBetweenClusters, ref NativeList<byte> pBonesPerVertex, ref NativeList<BoneWeight1> pWeights)
+        {
+            for (nuint v = 0; v < pDeformer->vertices.count; v++)
+            {
+                ufbx_skin_vertex* vertex = &pDeformer->vertices.data[v];
+                int start = pWeights.Length;
+
+                for (uint w = 0; w < vertex->num_weights; w++)
+                {
+                    ufbx_skin_weight* weight = &pDeformer->weights.data[w + vertex->weight_begin];
+                    if (weight->weight <= 0.0) continue;
+
+                    pWeights.Add(new BoneWeight1()
+                    {
+                        weight = (float)weight->weight,
+                        boneIndex = (int)(weight->cluster_index + pBetweenClusters)
+                    });
+                }
+
+                int count = pWeights.Length - start;
+
+                if (count == 0)
+                {
+                    pBonesPerVertex.Add(1);
+                    pWeights.Add(new BoneWeight1() { weight = 1.0f, boneIndex = 0 });
+                    Debug.LogError($"[FBXRuntime]: The fbx \"{pDeformer->Anonymous.element.scene->metadata.filename.ToString()}\" failed in Vertex \"{v}:aprox\" has zero weights in deformer \"{pDeformer->name}\".");
+                    continue;
+                }
+
+                // Ordenar de mayor a menor (count suele ser <= 8)
+                for (int i = start + 1; i < start + count; i++)
+                {
+                    BoneWeight1 key = pWeights[i];
+                    int j = i - 1;
+                    while (j >= start && pWeights[j].weight < key.weight)
+                    {
+                        pWeights[j + 1] = pWeights[j];
+                        j--;
+                    }
+                    pWeights[j + 1] = key;
+                }
+
+                int keep = Math.Min(count, (int)pDeformer->max_weights_per_vertex);
+                pWeights.Length = start + keep;
+
+                // Normalizar
+                float sum = 0f;
+                for (int i = 0; i < keep; i++)
+                    sum += pWeights[start + i].weight;
+
+                float inv = 1f / sum;
+                for (int i = 0; i < keep; i++)
+                {
+                    BoneWeight1 bw = pWeights[start + i];
+                    bw.weight *= inv;
+                    pWeights[start + i] = bw;
+                }
+
+                pBonesPerVertex.Add((byte)keep);
+            }
+        }
+
 
         // Creo que hay una funcion interna que ya hace la conversion.
         public static unsafe int[] GetTrianges(ufbx_mesh* pMesh)
