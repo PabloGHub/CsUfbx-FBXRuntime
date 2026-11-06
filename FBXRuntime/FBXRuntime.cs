@@ -573,7 +573,7 @@ namespace Ufbx.Runtime
         {
             nuint c = pMesh->face_group_parts.count;
 
-            if (c < 1)  return CreateMesh(pMesh);
+            if (c < 1) return CreateMesh(pMesh);
 
             DataFaces[] faces = new DataFaces[c];
             Mesh mesh;
@@ -1427,15 +1427,6 @@ namespace Ufbx.Runtime
             public int[] Triangles;
 
             public Vector2[] UV0;
-            //public Vector2[] UV1;
-            //public Vector2[] UV2;
-            //public Vector2[] UV3;
-            //public Vector2[] UV4;
-            //public Vector2[] UV5;
-            //public Vector2[] UV6;
-            //public Vector2[] UV7;
-            //public Vector2[] UV8;
-
         }
 
         public unsafe struct DataVertex
